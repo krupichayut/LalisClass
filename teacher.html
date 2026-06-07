@@ -972,7 +972,13 @@
             if(targetView) {
                 targetView.style.display = 'block';
                 // Trigger specific renders
-                if(viewName === 'attendance') { renderAttendance(); loadAttendanceForDate(); }
+                if(viewName === 'attendance') { 
+                    renderAttendance(); 
+                    loadAttendanceForDate(); 
+                    renderCalendar();
+                    populateReportMonthSelector();
+                    renderMonthlyReport();
+                }
                 if(viewName === 'grading') renderSpreadsheet();
                 if(viewName === 'missing') renderMissing();
                 if(viewName === 'dashboard') updateDashboardKPIs(); // Charts init on load
