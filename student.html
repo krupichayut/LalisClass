@@ -196,7 +196,7 @@
                 snapshot.forEach(doc => {
                     const classData = doc.data();
                     if(classData.students) {
-                        const std = classData.students.find(s => String(s.stdCode) === input || String(s.number) === input);
+                        const std = classData.students.find(s => String(s.stdCode) === input);
                         if(std) {
                             loggedInStudent = std;
                             loggedInClass = { id: doc.id, ...classData };
@@ -281,6 +281,13 @@
                 `;
             });
 
+            if (gradeColumns.length === 0) {
+                gradesHtml = `<tr><td colspan="5" class="p-8 text-center text-slate-400">
+                    <div class="text-3xl mb-2"><i class="fa-solid fa-file-circle-xmark"></i></div>
+                    <div class="font-bold text-sm">ยังไม่มีการประเมินผลจากคุณครู</div>
+                </td></tr>`;
+            }
+
             document.getElementById('gradesTableBody').innerHTML = gradesHtml;
             document.getElementById('lblTotalScore').innerText = Math.round(totalScore);
             document.getElementById('lblMissingCount').innerText = missingCount;
@@ -350,6 +357,14 @@
                     `;
                 });
             }
+
+            if (!loggedInClass.attendanceRecords || loggedInClass.attendanceRecords.length === 0) {
+                attHtml = `<tr><td colspan="3" class="p-8 text-center text-slate-400">
+                    <div class="text-3xl mb-2"><i class="fa-solid fa-calendar-xmark"></i></div>
+                    <div class="font-bold text-sm">ยังไม่มีข้อมูลการเข้าเรียน</div>
+                </td></tr>`;
+            }
+
             document.getElementById('attendanceTableBody').innerHTML = attHtml;
 
             // Missing Alert

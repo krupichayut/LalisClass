@@ -1571,6 +1571,15 @@
 
             // Generate Body
             let bodyHtml = '';
+
+            if (MOCK_STUDENTS.length === 0) {
+                bodyHtml = `<tr><td colspan="100%" class="p-8 text-center text-slate-400">
+                    <div class="text-4xl mb-2 text-slate-300"><i class="fa-solid fa-folder-open"></i></div>
+                    <div class="font-bold">ยังไม่มีรายชื่อนักเรียน</div>
+                    <div class="text-xs mt-1">ไปที่แท็บ "ตั้งค่าระบบ" เพื่อเพิ่มนักเรียนครับ</div>
+                </td></tr>`;
+            }
+
             MOCK_STUDENTS.forEach((std, rIdx) => {
                 const isTransferred = std.status === 'transferred';
                 let t0 = getAttendanceScore(std);
@@ -1732,6 +1741,7 @@
                     } catch(e) { 
                         console.error("Error saving score", e); 
                         inputEl.style.backgroundColor = '#fee2e2'; // light red
+                        showModal('บันทึกไม่สำเร็จ', 'ไม่สามารถบันทึกคะแนนได้ โปรดตรวจสอบอินเทอร์เน็ต', '<i class="fa-solid fa-wifi text-cozy-red"></i>', 'text-cozy-red');
                     }
                 }
             }
