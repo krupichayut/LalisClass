@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LalisClass - สำหรับนักเรียน</title>
+    <!-- PWA / Add to Home Screen -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#FAF7F2">
+    <link rel="apple-touch-icon" href="./logo/lalisclasslogo.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome -->
@@ -125,12 +131,12 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="bg-white text-slate-400 text-sm border-b border-slate-100">
-                            <th class="p-4 font-bold">หมวดหมู่</th>
-                            <th class="p-4 font-bold">ชื่อชิ้นงาน / การประเมิน</th>
-                            <th class="p-4 font-bold text-center">คะแนนเต็ม</th>
-                            <th class="p-4 font-bold text-center">คะแนนที่ได้</th>
-                            <th class="p-4 font-bold text-center">สถานะ</th>
+                        <tr class="bg-white text-slate-400 text-xs md:text-sm border-b border-slate-100 whitespace-nowrap">
+                            <th class="p-3 md:p-4 font-bold">หมวดหมู่</th>
+                            <th class="p-3 md:p-4 font-bold">ชื่อชิ้นงาน / การประเมิน</th>
+                            <th class="p-3 md:p-4 font-bold text-center">คะแนนเต็ม</th>
+                            <th class="p-3 md:p-4 font-bold text-center">คะแนนที่ได้</th>
+                            <th class="p-3 md:p-4 font-bold text-center">สถานะ</th>
                         </tr>
                     </thead>
                     <tbody id="gradesTableBody" class="divide-y divide-slate-50">
@@ -149,13 +155,13 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="bg-white text-slate-400 text-sm border-b border-slate-100">
-                            <th class="p-4 font-bold">วันที่</th>
-                            <th class="p-4 font-bold text-center">สถานะ</th>
-                            <th class="p-4 font-bold">หมายเหตุ</th>
+                        <tr class="bg-white text-slate-400 text-xs md:text-sm border-b border-slate-100 whitespace-nowrap">
+                            <th class="p-3 md:p-4 font-bold">วันที่</th>
+                            <th class="p-3 md:p-4 font-bold text-center">สถานะ</th>
+                            <th class="p-3 md:p-4 font-bold">หมายเหตุ</th>
                         </tr>
                     </thead>
-                    <tbody id="attendanceTableBody" class="divide-y divide-slate-50">
+                    <tbody id="attendanceTableBody" class="divide-y divide-slate-50 text-sm md:text-base">
                         <!-- JS Generated -->
                     </tbody>
                 </table>
@@ -284,12 +290,12 @@
                 }
 
                 gradesHtml += `
-                    <tr class="${rowClass}">
-                        <td class="p-4 font-bold text-slate-500 text-xs">${catName}</td>
-                        <td class="p-4 font-bold text-heart-brown">${col.name}</td>
-                        <td class="p-4 text-center font-number text-slate-400">${col.max}</td>
-                        <td class="p-4 text-center font-number font-bold text-cozy-blue text-lg">${valHtml}</td>
-                        <td class="p-4 text-center">${statusHtml}</td>
+                    <tr class="${rowClass} text-sm md:text-base whitespace-nowrap">
+                        <td class="p-3 md:p-4 font-bold text-slate-500 text-xs md:text-sm">${catName}</td>
+                        <td class="p-3 md:p-4 font-bold text-heart-brown whitespace-normal min-w-[150px]">${col.name}</td>
+                        <td class="p-3 md:p-4 text-center font-number text-slate-400">${col.max}</td>
+                        <td class="p-3 md:p-4 text-center font-number font-bold text-cozy-blue text-base md:text-lg">${valHtml}</td>
+                        <td class="p-3 md:p-4 text-center">${statusHtml}</td>
                     </tr>
                 `;
             });
@@ -354,11 +360,11 @@
 
                     attHtml += `
                         <tr class="hover:bg-slate-50 transition-colors">
-                            <td class="p-4 font-bold text-slate-600">${dateStr}</td>
-                            <td class="p-4 text-center">
+                            <td class="p-3 md:p-4 font-bold text-slate-600">${dateStr}</td>
+                            <td class="p-3 md:p-4 text-center">
                                 <span class="px-3 py-1 ${statusColor} rounded-full text-xs font-bold whitespace-nowrap">${statusLabel}</span>
                             </td>
-                            <td class="p-4 text-slate-500 text-sm">${noteText}</td>
+                            <td class="p-3 md:p-4 text-slate-500 text-sm">${noteText}</td>
                         </tr>
                     `;
                 });
