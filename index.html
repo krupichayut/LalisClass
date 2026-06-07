@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LalisClass - เข้าสู่ระบบ</title>
+
+    <!-- Load SheetJS for Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;900&family=Mali:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Kanit', 'sans-serif'],
+                        cute: ['Mali', 'cursive']
+                    },
+                    colors: {
+                        logo: {
+                            wood: '#D99B66',      // Desk/wood color
+                            woodDark: '#A86C45',  // Darker wood for borders
+                            pink: '#F49EAB',      // Ribbon pink
+                            pinkDark: '#D87A88',
+                            yellow: '#FFDF8D',    // Cat color/stars
+                            yellowDark: '#EBB953',
+                            green: '#8DBCA5',     // Chalkboard/plants
+                            greenDark: '#66967E',
+                            cream: '#FFF4E0',     // Background cream
+                            text: '#5D3C30'       // Deep brown text
+                        }
+                    },
+                    boxShadow: {
+                        'sticker': '0 8px 0px 0px rgba(168, 108, 69, 0.4), 0 0 0 6px white',
+                        'sticker-hover': '0 4px 0px 0px rgba(168, 108, 69, 0.4), 0 0 0 6px white',
+                        'card': '0 0 0 10px white, 0 15px 30px rgba(93, 60, 48, 0.15)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { 
+            font-family: 'Kanit', sans-serif; 
+            background-color: #FFF4E0;
+            background-image: 
+                radial-gradient(#D99B66 1.5px, transparent 1.5px),
+                radial-gradient(#D99B66 1.5px, #FFF4E0 1.5px);
+            background-size: 40px 40px;
+            background-position: 0 0, 20px 20px;
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .main-card {
+            background-color: #FAF5EB;
+            border-radius: 3rem;
+            border: 6px solid white;
+            box-shadow: var(--tw-shadow-card);
+            position: relative;
+        }
+
+        .btn-bubbly {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 4px solid white;
+            border-radius: 2.5rem;
+        }
+        
+        .btn-bubbly:hover {
+            transform: translateY(4px);
+            box-shadow: var(--tw-shadow-sticker-hover);
+        }
+        
+        .btn-bubbly:active {
+            transform: translateY(8px);
+            box-shadow: 0 0 0 0 rgba(168, 108, 69, 0.4), 0 0 0 6px white;
+        }
+        
+        .logo-img {
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1));
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .star-decor {
+            animation: spin-slow 10s linear infinite;
+        }
+
+        @keyframes spin-slow {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.1); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 relative overflow-hidden">
+
+    <!-- Decorative Stars -->
+    <div class="absolute top-10 left-10 md:left-20 text-logo-yellow text-5xl star-decor"><i class="fa-solid fa-star"></i></div>
+    <div class="absolute bottom-20 right-10 md:right-20 text-logo-pink text-6xl star-decor" style="animation-direction: reverse; animation-duration: 12s;"><i class="fa-solid fa-heart"></i></div>
+
+    <div class="main-card p-6 md:p-12 w-full max-w-3xl text-center z-10 mx-auto">
+        
+        <!-- Header -->
+        <div class="mb-10 relative">
+            <h1 class="text-4xl md:text-5xl font-cute font-bold text-logo-text mb-3">ยินดีต้อนรับ! 👋</h1>
+            <div class="inline-block bg-logo-cream text-logo-woodDark px-6 py-2 rounded-full font-bold text-sm border-2 border-dashed border-logo-woodDark">
+                กรุณาเลือกสถานะการเข้าใช้งาน
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 px-4 md:px-8">
+            
+            <!-- Student Button -->
+            <a href="student.html" class="btn-bubbly p-0 shadow-sticker flex items-center justify-center group overflow-hidden bg-transparent border-0">
+                <img src="./logo/ไอคอนเข้าระบบ/สำหรับนักเรียน.png" alt="สำหรับนักเรียน" class="w-full h-auto object-contain rounded-3xl group-hover:scale-105 transition-transform duration-300">
+            </a>
+
+            <!-- Teacher Button -->
+            <a href="teacher.html" class="btn-bubbly p-0 shadow-sticker flex items-center justify-center group overflow-hidden bg-transparent border-0">
+                <img src="./logo/ไอคอนเข้าระบบ/สำหรับคุณครู.png" alt="สำหรับคุณครู" class="w-full h-auto object-contain rounded-3xl group-hover:scale-105 transition-transform duration-300">
+            </a>
+
+        </div>
+
+        <div class="mt-12 text-sm text-logo-woodDark font-bold flex items-center justify-center gap-2">
+            <i class="fa-solid fa-paw text-logo-yellowDark"></i> LalisClass Score System
+        </div>
+        
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LalisClass - สำหรับนักเรียน</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Kanit', 'sans-serif'],
+                        number: ['Inter', 'sans-serif']
+                    },
+                    colors: {
+                        heart: { cream: '#FFF5E4', pink: '#FFE3E1', pinkDark: '#FFD1D1', brown: '#7A4B3A', green: '#A8E6CF', blue: '#B4E4FF', yellow: '#FEFFB6' },
+                        cozy: { bg: '#FAF7F2', pink: '#FFB5B5', blue: '#98DDCA', yellow: '#FFD3B6', purple: '#D4C4FB', red: '#FF9E9E' }
+                    },
+                    boxShadow: {
+                        'cozy': '4px 4px 0px 0px rgba(122, 75, 58, 0.1)',
+                        'sticker': '0 0 0 4px white, 0 4px 8px rgba(0,0,0,0.1)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { 
+            font-family: 'Kanit', sans-serif; 
+            background-color: #FAF7F2;
+            background-image: radial-gradient(#7A4B3A 0.5px, transparent 0.5px), radial-gradient(#7A4B3A 0.5px, #FAF7F2 0.5px);
+            background-size: 40px 40px; background-position: 0 0, 20px 20px;
+            background-attachment: fixed;
+        }
+        .sticker {
+            background: white; border-radius: 2rem; border: 4px solid white;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 0 0 4px rgba(255,255,255,0.5);
+        }
+        .missing-row { animation: pulseBg 2s infinite; }
+        @keyframes pulseBg { 0% { background-color: #fff1f2; } 50% { background-color: #ffe4e6; } 100% { background-color: #fff1f2; } }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen relative">
+
+    <!-- LOGIN VIEW -->
+    <div id="loginView" class="fixed inset-0 z-[100] flex items-center justify-center bg-cozy-bg" style="background-image: radial-gradient(#7A4B3A 0.5px, transparent 0.5px), radial-gradient(#7A4B3A 0.5px, #FAF7F2 0.5px); background-size: 40px 40px; background-position: 0 0, 20px 20px;">
+        <div class="sticker p-8 md:p-12 max-w-sm w-full mx-4 text-center bg-white rounded-[2rem] shadow-cozy border-[4px] border-white relative">
+            <div class="w-20 h-20 bg-cozy-blue text-blue-900 rounded-full flex items-center justify-center text-4xl mx-auto mb-6 shadow-sm"><i class="fa-solid fa-graduation-cap"></i></div>
+            <h2 class="text-2xl font-black text-heart-brown mb-2">ตรวจสอบผลการเรียน</h2>
+            <p class="text-slate-500 mb-6 text-sm">กรุณากรอกรหัสประจำตัวนักเรียน</p>
+            <input type="text" id="studentIdInput" class="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-4 py-4 text-center text-2xl font-number tracking-widest mb-6 focus:border-cozy-blue outline-none" placeholder="เช่น 65001">
+            <button onclick="loginStudent()" class="w-full bg-cozy-blue text-blue-900 p-4 rounded-2xl font-bold shadow-sm hover:scale-105 transition-transform text-lg" id="loginBtn">เข้าสู่ระบบ <i class="fa-solid fa-arrow-right ml-2"></i></button>
+            <p id="loginError" class="text-red-500 text-sm mt-4 font-bold hidden">ไม่พบรหัสนักเรียนนี้ในระบบ!</p>
+            <div class="mt-6 text-sm">
+                <a href="index.html" class="text-slate-400 hover:text-cozy-blue"><i class="fa-solid fa-arrow-left"></i> กลับไปหน้าแรก</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- DASHBOARD VIEW (Hidden by default) -->
+    <div id="dashboardView" class="max-w-4xl mx-auto hidden pb-20">
+        
+        <!-- Header Profile -->
+        <div class="sticker bg-heart-cream/50 p-6 md:p-8 mb-8 relative overflow-hidden flex flex-col md:flex-row items-center gap-6">
+            <div class="w-24 h-24 bg-white rounded-full border-4 border-heart-pink shadow-sm flex items-center justify-center text-4xl text-heart-pink relative z-10">
+                <i class="fa-solid fa-user-graduate"></i>
+            </div>
+            <div class="text-center md:text-left relative z-10 flex-1">
+                <p class="text-heart-brown/60 font-bold mb-1"><span id="lblClassName" class="bg-white px-3 py-1 rounded-full text-xs shadow-sm">ม.3/1 ศิลปะ</span></p>
+                <h2 id="lblStudentName" class="text-3xl font-black text-heart-brown">ด.ช. สมชาย รักเรียน</h2>
+                <p class="text-heart-brown/80 mt-2 font-number">เลขที่ <span id="lblStudentNum" class="font-bold">1</span> | รหัสประจำตัว <span id="lblStudentCode" class="font-bold">65001</span></p>
+            </div>
+            <div class="relative z-10">
+                <button onclick="logout()" class="px-6 py-2 bg-white text-red-500 rounded-full font-bold shadow-sm hover:bg-red-50 border border-red-100"><i class="fa-solid fa-right-from-bracket mr-2"></i>ออกจากระบบ</button>
+            </div>
+            <!-- Decors -->
+            <div class="absolute -right-10 -bottom-10 text-9xl text-white opacity-40 transform rotate-12"><i class="fa-solid fa-star"></i></div>
+        </div>
+
+        <!-- Warning Missing Work -->
+        <div id="missingAlert" class="bg-red-50 border-2 border-red-200 rounded-2xl p-4 mb-8 hidden items-center gap-4 shadow-sm animate-bounce">
+            <div class="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div>
+                <h4 class="font-bold text-red-700">แจ้งเตือนด่วน! คุณมีงานค้างส่ง</h4>
+                <p class="text-sm text-red-600">กรุณาตรวจสอบตารางด้านล่างและรีบติดต่อคุณครูเพื่อส่งงานที่ค้างอยู่โดยด่วนครับ</p>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="sticker bg-white p-4 text-center">
+                <div class="text-slate-400 text-xs font-bold uppercase mb-1">คะแนนรวม</div>
+                <div class="text-3xl font-black font-number text-cozy-purple" id="lblTotalScore">0</div>
+            </div>
+            <div class="sticker bg-white p-4 text-center">
+                <div class="text-slate-400 text-xs font-bold uppercase mb-1">เกรดประเมิน</div>
+                <div class="text-3xl font-black font-number text-cozy-blue" id="lblExpectedGrade">-</div>
+            </div>
+            <div class="sticker bg-white p-4 text-center">
+                <div class="text-slate-400 text-xs font-bold uppercase mb-1">มาเรียน (%)</div>
+                <div class="text-3xl font-black font-number text-heart-green" id="lblAttPercent">0%</div>
+            </div>
+            <div class="sticker bg-white p-4 text-center">
+                <div class="text-slate-400 text-xs font-bold uppercase mb-1">งานค้าง (ชิ้น)</div>
+                <div class="text-3xl font-black font-number text-cozy-red" id="lblMissingCount">0</div>
+            </div>
+        </div>
+
+        <!-- Grade Details -->
+        <div class="sticker bg-white overflow-hidden">
+            <div class="p-6 border-b border-slate-100 bg-slate-50 flex items-center gap-3">
+                <div class="w-10 h-10 bg-cozy-pink text-pink-900 rounded-full flex items-center justify-center text-lg"><i class="fa-solid fa-list-check"></i></div>
+                <h3 class="text-xl font-bold text-heart-brown">รายละเอียดคะแนนรายวิชา</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-white text-slate-400 text-sm border-b border-slate-100">
+                            <th class="p-4 font-bold">หมวดหมู่</th>
+                            <th class="p-4 font-bold">ชื่อชิ้นงาน / การประเมิน</th>
+                            <th class="p-4 font-bold text-center">คะแนนเต็ม</th>
+                            <th class="p-4 font-bold text-center">คะแนนที่ได้</th>
+                            <th class="p-4 font-bold text-center">สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gradesTableBody" class="divide-y divide-slate-50">
+                        <!-- JS Generated -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // FIREBASE SETUP
+        const firebaseConfig = {
+            apiKey: "AIzaSyBWO___EuOpmVHhTq7QN68mAvbphpcb3-A",
+            authDomain: "moneyflow-c855c.firebaseapp.com",
+            projectId: "moneyflow-c855c",
+            storageBucket: "moneyflow-c855c.firebasestorage.app",
+            messagingSenderId: "41220829894",
+            appId: "1:41220829894:web:9d9b743264fd2562651dc7",
+            measurementId: "G-KXELCWY2H3"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let loggedInStudent = null;
+        let loggedInClass = null;
+            sessionStorage.removeItem('lalis_student_id');
+        
+        // Listen for Enter key
+        document.getElementById('studentIdInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') loginStudent();
+        });
+
+        async function loginStudent() {
+            const input = document.getElementById('studentIdInput').value.trim();
+            const btn = document.getElementById('loginBtn');
+            const error = document.getElementById('loginError');
+            
+            if(!input) return;
+            
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังค้นหา...';
+            error.classList.add('hidden');
+
+            try {
+                // Fetch all classes
+                const snapshot = await db.collection('classes').get();
+                let found = false;
+                
+                snapshot.forEach(doc => {
+                    const classData = doc.data();
+                    if(classData.students) {
+                        const std = classData.students.find(s => String(s.stdCode) === input || String(s.number) === input);
+                        if(std) {
+                            loggedInStudent = std;
+                            loggedInClass = { id: doc.id, ...classData };
+                            found = true;
+                        }
+                    }
+                });
+
+                if(found) {
+                    sessionStorage.setItem('lalis_student_id', input);
+                    renderDashboard();
+                    document.getElementById('loginView').classList.add('opacity-0', 'pointer-events-none');
+                    setTimeout(() => {
+                        document.getElementById('loginView').classList.add('hidden');
+                        document.getElementById('dashboardView').classList.remove('hidden');
+                    }, 300);
+                } else {
+                    error.classList.remove('hidden');
+                }
+            } catch(e) {
+                console.error(e);
+                error.innerText = 'เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล';
+                error.classList.remove('hidden');
+            }
+            
+            btn.innerHTML = 'เข้าสู่ระบบ <i class="fa-solid fa-arrow-right ml-2"></i>';
+        }
+
+        function renderDashboard() {
+            // Profile
+            document.getElementById('lblClassName').innerText = loggedInClass.name;
+            document.getElementById('lblStudentName').innerText = loggedInStudent.name;
+            document.getElementById('lblStudentNum').innerText = loggedInStudent.number;
+            document.getElementById('lblStudentCode').innerText = loggedInStudent.stdCode;
+
+            // Attendance
+            let attObj = loggedInStudent.att || { present: 0, total: 0 };
+            let attPct = attObj.total === 0 ? 100 : Math.round((attObj.present / attObj.total) * 100);
+            document.getElementById('lblAttPercent').innerText = attPct + '%';
+
+            // Grades Processing
+            let gradesHtml = '';
+            let totalScore = 0;
+            let missingCount = 0;
+            const columns = loggedInClass.gradeColumns || [];
+            const scores = loggedInStudent.scores || {};
+
+            columns.forEach(col => {
+                let s = scores[col.id];
+                let isMissing = (s === null || s === undefined || s === '');
+                let statusHtml = '';
+                let valHtml = '';
+                let rowClass = 'hover:bg-slate-50 transition-colors';
+
+                // Map category code to name
+                let catName = 'งานทั่วไป';
+                if(col.cat === 'T1') catName = 'ครึ่งเทอมแรก';
+                if(col.cat === 'T2') catName = 'สอบกลางภาค';
+                if(col.cat === 'T3') catName = 'ครึ่งเทอมหลัง';
+                if(col.cat === 'T4') catName = 'สอบปลายภาค';
+
+                if(isMissing) {
+                    missingCount++;
+                    statusHtml = '<span class="px-3 py-1 bg-red-100 text-red-600 rounded-full text-xs font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i>ค้างส่ง</span>';
+                    valHtml = '-';
+                    rowClass = 'missing-row hover:bg-red-100 transition-colors';
+                } else {
+                    let num = parseFloat(s);
+                    totalScore += num;
+                    statusHtml = '<span class="px-3 py-1 bg-green-100 text-green-600 rounded-full text-xs font-bold"><i class="fa-solid fa-check mr-1"></i>ส่งแล้ว</span>';
+                    valHtml = num;
+                }
+
+                gradesHtml += `
+                    <tr class="${rowClass}">
+                        <td class="p-4 font-bold text-slate-500 text-xs">${catName}</td>
+                        <td class="p-4 font-bold text-heart-brown">${col.name}</td>
+                        <td class="p-4 text-center font-number text-slate-400">${col.max}</td>
+                        <td class="p-4 text-center font-number font-bold text-cozy-blue text-lg">${valHtml}</td>
+                        <td class="p-4 text-center">${statusHtml}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('gradesTableBody').innerHTML = gradesHtml;
+            document.getElementById('lblTotalScore').innerText = Math.round(totalScore);
+            document.getElementById('lblMissingCount').innerText = missingCount;
+
+            // Simple Grade Calculation (Assumes 100 max total)
+            let grade = '0';
+            if(totalScore >= 80) grade = '4.0';
+            else if(totalScore >= 75) grade = '3.5';
+            else if(totalScore >= 70) grade = '3.0';
+            else if(totalScore >= 65) grade = '2.5';
+            else if(totalScore >= 60) grade = '2.0';
+            else if(totalScore >= 55) grade = '1.5';
+            else if(totalScore >= 50) grade = '1.0';
+            
+            document.getElementById('lblExpectedGrade').innerText = grade;
+
+            // Missing Alert
+            if(missingCount > 0) {
+                document.getElementById('missingAlert').classList.remove('hidden');
+                document.getElementById('missingAlert').classList.add('flex');
+            } else {
+                document.getElementById('missingAlert').classList.add('hidden');
+                document.getElementById('missingAlert').classList.remove('flex');
+            }
+        }
+
+        function logout() {
+            loggedInStudent = null;
+            loggedInClass = null;
+            sessionStorage.removeItem('lalis_student_id');
+            document.getElementById('studentIdInput').value = '';
+            document.getElementById('dashboardView').classList.add('hidden');
+            document.getElementById('loginView').classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+        }
+    
+        // Auto-login on refresh
+        window.onload = function() {
+            const savedId = sessionStorage.getItem('lalis_student_id');
+            if(savedId) {
+                document.getElementById('studentIdInput').value = savedId;
+                loginStudent();
+            }
+        };
+</script>
+</body>
+</html>
