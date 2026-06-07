@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>LalisClass - ระบบ ปพ.5</title>
     
     <!-- PWA / Add to Home Screen -->
@@ -257,10 +257,10 @@
     </aside>
 
     <!-- Main Content Area -->
-    <main class="flex-1 w-full h-full overflow-y-auto relative p-4 md:p-6 md:pr-8">
+    <main class="flex-1 min-w-0 h-full overflow-y-auto overflow-x-hidden relative p-4 md:p-6 md:pr-8">
         
         <!-- Mobile Header with Hamburger -->
-        <div class="md:hidden flex justify-between items-center mb-6 sticky top-0 z-20 bg-[#FDF4E3]/90 backdrop-blur-sm py-2 px-1">
+        <div class="md:hidden flex justify-between items-center mb-6 sticky top-0 z-40 bg-[#FDF4E3] border-b-2 border-white py-3 px-2 shadow-sm rounded-b-2xl">
             <button onclick="toggleSidebar()" class="text-heart-brown text-2xl p-3 bg-white rounded-2xl shadow-sm border-2 border-white hover:scale-105 transition-transform"><i class="fa-solid fa-bars"></i></button>
             <h2 class="font-bold text-xl text-heart-brown font-number">LalisClass</h2>
             <div class="w-12"></div>
@@ -289,7 +289,7 @@
                     <div class="flex items-start justify-between relative z-10">
                         <div>
                             <p class="text-sm font-bold text-heart-brown/60 uppercase tracking-wider mb-1">นักเรียนทั้งหมด</p>
-                            <h3 class="text-6xl font-number font-black text-heart-brown drop-shadow-sm mt-2 mb-4" id="dashTotalStudents">0<span class="text-xl font-sans text-heart-brown/50 ml-2">คน</span></h3>
+                            <h3 class="text-5xl md:text-6xl font-number font-black text-heart-brown drop-shadow-sm mt-2 mb-4" id="dashTotalStudents">0<span class="text-xl font-sans text-heart-brown/50 ml-2">คน</span></h3>
                         </div>
                         <div class="w-16 h-16 rounded-full bg-white border-[4px] border-heart-blue flex items-center justify-center text-heart-blue text-2xl shadow-sm transform group-hover:rotate-12 transition-transform">
                             <i class="fa-solid fa-users"></i>
@@ -306,7 +306,7 @@
                     <div class="flex items-start justify-between relative z-10">
                         <div>
                             <p class="text-sm font-bold text-heart-brown/60 uppercase tracking-wider mb-1">เข้าเรียนเฉลี่ย</p>
-                            <h3 class="text-6xl font-number font-black text-heart-brown drop-shadow-sm mt-2 mb-4" id="dashAvgAtt">-<span class="text-xl font-sans text-heart-brown/50 ml-2">%</span></h3>
+                            <h3 class="text-5xl md:text-6xl font-number font-black text-heart-brown drop-shadow-sm mt-2 mb-4" id="dashAvgAtt">-<span class="text-xl font-sans text-heart-brown/50 ml-2">%</span></h3>
                         </div>
                         <div class="w-16 h-16 rounded-full bg-white border-[4px] border-heart-yellow flex items-center justify-center text-heart-yellow text-2xl shadow-sm transform group-hover:-rotate-12 transition-transform">
                             <i class="fa-solid fa-calendar-check"></i>
@@ -324,7 +324,7 @@
                     <div class="flex items-start justify-between relative z-10">
                         <div>
                             <p class="text-sm font-bold text-heart-brown/60 uppercase tracking-wider mb-1">งานค้างส่ง</p>
-                            <h3 class="text-6xl font-number font-black text-heart-pink drop-shadow-sm mt-2 mb-4" id="dashMissing">0<span class="text-xl font-sans text-heart-pink/70 ml-2">ชิ้น</span></h3>
+                            <h3 class="text-5xl md:text-6xl font-number font-black text-heart-pink drop-shadow-sm mt-2 mb-4" id="dashMissing">0<span class="text-xl font-sans text-heart-pink/70 ml-2">ชิ้น</span></h3>
                         </div>
                         <div class="w-16 h-16 rounded-full bg-white border-[4px] border-heart-pink flex items-center justify-center text-heart-pink text-2xl shadow-sm transform group-hover:scale-110 transition-transform">
                             <i class="fa-solid fa-box-open"></i>
