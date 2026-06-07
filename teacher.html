@@ -23,8 +23,8 @@
     <!-- Load Chart.js for Dashboard Graphics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- Load Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS (Local) -->
+    <link rel="stylesheet" href="./tailwind.css">
     
     <!-- Load PapaParse for CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -33,43 +33,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        heart: {
-                            cream: '#FDF4E3',
-                            brown: '#7A4B3A',
-                            border: '#A87C6D',
-                            pink: '#FFB7B2',
-                            blue: '#AEC6CF',
-                            yellow: '#FDE29F',
-                            green: '#4E6E5D'
-                        },
-                        cozy: {
-                            bg: '#FDF4E3',     
-                            blue: '#AEC6CF',   
-                            purple: '#FDE29F', 
-                            pink: '#FFB7B2',   
-                            red: '#FCA5A5',    
-                            text: '#7A4B3A',
-                            heading: '#7A4B3A',
-                            border: '#A87C6D'
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Kanit', 'sans-serif'],
-                        number: ['Comfortaa', 'cursive']
-                    },
-                    boxShadow: {
-                        'cozy': '0 4px 10px rgba(122, 75, 58, 0.15)',
-                        'cozy-inner': 'inset 0 2px 4px 0 rgba(122, 75, 58, 0.10)'
-                    }
-                }
-            }
-        }
-    </script>
+
 
     <style>
         body {

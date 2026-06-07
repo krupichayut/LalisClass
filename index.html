@@ -15,44 +15,14 @@
     <!-- Load SheetJS for Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS (Local) -->
+    <link rel="stylesheet" href="./tailwind.css">
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;900&family=Mali:wght@500;600;700&display=swap" rel="stylesheet">
     
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Kanit', 'sans-serif'],
-                        cute: ['Mali', 'cursive']
-                    },
-                    colors: {
-                        logo: {
-                            wood: '#D99B66',      // Desk/wood color
-                            woodDark: '#A86C45',  // Darker wood for borders
-                            pink: '#F49EAB',      // Ribbon pink
-                            pinkDark: '#D87A88',
-                            yellow: '#FFDF8D',    // Cat color/stars
-                            yellowDark: '#EBB953',
-                            green: '#8DBCA5',     // Chalkboard/plants
-                            greenDark: '#66967E',
-                            cream: '#FFF4E0',     // Background cream
-                            text: '#5D3C30'       // Deep brown text
-                        }
-                    },
-                    boxShadow: {
-                        'sticker': '0 8px 0px 0px rgba(168, 108, 69, 0.4), 0 0 0 6px white',
-                        'sticker-hover': '0 4px 0px 0px rgba(168, 108, 69, 0.4), 0 0 0 6px white',
-                        'card': '0 0 0 10px white, 0 15px 30px rgba(93, 60, 48, 0.15)'
-                    }
-                }
-            }
-        }
-    </script>
+
     <style>
         body { 
             font-family: 'Kanit', sans-serif; 
