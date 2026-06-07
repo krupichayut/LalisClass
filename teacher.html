@@ -1243,16 +1243,16 @@
                         if(p === total && total > 0) {
                             bgClass = 'bg-green-50 hover:bg-green-100 cursor-pointer border border-green-200';
                             dotHtml = '<div class="w-2 h-2 rounded-full bg-green-400 mx-auto mt-1"></div>';
-                            statusText = '<span class="text-[9px] text-green-600 block">ครบ</span>';
+                            statusText = '<span class="text-[9px] text-green-600 block mt-1">ครบ</span>';
                         } else {
                             bgClass = 'bg-pink-50 hover:bg-pink-100 cursor-pointer border border-pink-200';
-                            dotHtml = '<div class="w-2 h-2 rounded-full bg-pink-400 mx-auto mt-1"></div>';
+                            dotHtml = ''; // Remove the main dot since we show inline dots below
                             let details = [];
-                            if (p > 0) details.push(`มา ${p}`);
-                            if (l > 0) details.push(`สาย ${l}`);
-                            if (lv > 0) details.push(`ลา ${lv}`);
-                            if (a > 0) details.push(`ขาด ${a}`);
-                            statusText = `<span class="text-[9px] text-pink-600 block leading-tight mt-0.5">${details.join('<br>')}</span>`;
+                            if (p > 0) details.push(`<span class="inline-flex items-center gap-1 text-green-600"><span class="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0"></span>มา ${p}</span>`);
+                            if (l > 0) details.push(`<span class="inline-flex items-center gap-1 text-orange-500"><span class="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0"></span>สาย ${l}</span>`);
+                            if (lv > 0) details.push(`<span class="inline-flex items-center gap-1 text-blue-500"><span class="w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0"></span>ลา ${lv}</span>`);
+                            if (a > 0) details.push(`<span class="inline-flex items-center gap-1 text-pink-600"><span class="w-1.5 h-1.5 rounded-full bg-pink-400 flex-shrink-0"></span>ขาด ${a}</span>`);
+                            statusText = `<div class="text-[9px] flex flex-col items-center leading-tight mt-1 space-y-0.5">${details.join('')}</div>`;
                         }
                     }
                 } else if(isWeekend) {
