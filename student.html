@@ -177,10 +177,14 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        
+        // Enable offline persistence for faster loading
+        db.enablePersistence().catch(err => {
+            console.log("Persistence error:", err);
+        });
 
         let loggedInStudent = null;
         let loggedInClass = null;
-            sessionStorage.removeItem('lalis_student_id');
         
         // Listen for Enter key
         document.getElementById('studentIdInput').addEventListener('keypress', function(e) {

@@ -698,6 +698,11 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        
+        // Enable offline persistence for faster loading
+        db.enablePersistence().catch(err => {
+            console.log("Persistence error:", err);
+        });
 
         let MOCK_STUDENTS = []; // Now populated from DB
         let allClasses = [];
