@@ -1230,16 +1230,29 @@
                         dotHtml = '<div class="w-2 h-2 rounded-full bg-amber-400 mx-auto mt-1"></div>';
                         statusText = '<span class="text-[9px] text-amber-600 block">หยุด</span>';
                     } else {
-                        let absent = 0;
-                        for(let k in record.records) { if(record.records[k] === 'absent') absent++; }
-                        if(absent === 0) {
+                        let p = 0, l = 0, lv = 0, a = 0;
+                        let total = 0;
+                        for(let k in record.records) {
+                            total++;
+                            if(record.records[k] === 'present') p++;
+                            else if(record.records[k] === 'late') l++;
+                            else if(record.records[k] === 'leave') lv++;
+                            else if(record.records[k] === 'absent') a++;
+                        }
+                        
+                        if(p === total && total > 0) {
                             bgClass = 'bg-green-50 hover:bg-green-100 cursor-pointer border border-green-200';
                             dotHtml = '<div class="w-2 h-2 rounded-full bg-green-400 mx-auto mt-1"></div>';
                             statusText = '<span class="text-[9px] text-green-600 block">ครบ</span>';
                         } else {
                             bgClass = 'bg-pink-50 hover:bg-pink-100 cursor-pointer border border-pink-200';
                             dotHtml = '<div class="w-2 h-2 rounded-full bg-pink-400 mx-auto mt-1"></div>';
-                            statusText = `<span class="text-[9px] text-pink-600 block">ขาด ${absent}</span>`;
+                            let details = [];
+                            if (p > 0) details.push(`มา ${p}`);
+                            if (l > 0) details.push(`สาย ${l}`);
+                            if (lv > 0) details.push(`ลา ${lv}`);
+                            if (a > 0) details.push(`ขาด ${a}`);
+                            statusText = `<span class="text-[9px] text-pink-600 block leading-tight mt-0.5">${details.join('<br>')}</span>`;
                         }
                     }
                 } else if(isWeekend) {
