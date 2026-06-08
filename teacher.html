@@ -252,6 +252,9 @@
                     <span class="hidden md:block">ออกจากระบบ</span>
                 </button>
             </nav>
+            <div class="absolute bottom-6 left-0 w-full hidden md:flex justify-center gap-4 text-2xl pointer-events-none animate-bounce" style="animation-duration: 3s;">
+                <span class="opacity-80">⭐️</span><span class="opacity-80 translate-y-2">🌸</span><span class="opacity-80">💖</span>
+            </div>
         </div>
 
     </aside>
@@ -958,12 +961,12 @@
 
             // Update active nav link
             document.querySelectorAll('.nav-link').forEach(el => {
-                el.classList.remove('active', 'bg-white', 'text-heart-brown', 'shadow-sm', 'font-bold', 'border-4', 'border-white', 'text-[#9333ea]', 'font-medium');
+                el.classList.remove('active', 'bg-white', 'text-heart-brown', 'shadow-sm', 'font-bold', 'border-4', 'border-white', 'text-[#9333ea]', 'font-medium', 'bg-[#FFD1DC]', 'border-2', 'border-[#7A4B3A]', 'shadow-[0_4px_0_#A87C6D]');
                 el.classList.add('text-white/80');
             });
             const activeNav = document.getElementById('nav-' + viewName);
             if(activeNav) {
-                activeNav.classList.add('active', 'bg-white', 'text-heart-brown', 'shadow-sm', 'font-bold', 'border-4', 'border-white');
+                activeNav.classList.add('active', 'bg-[#FFD1DC]', 'text-heart-brown', 'shadow-[0_4px_0_#A87C6D]', 'font-bold', 'border-2', 'border-[#7A4B3A]');
                 activeNav.classList.remove('text-white/80', 'text-heart-brown/80');
             }
 
@@ -1852,21 +1855,23 @@
                 cardsContainer.style.display = 'grid';
                 
                 let cardsHtml = '';
-                allClasses.forEach(c => {
+                const pastelColors = ['bg-[#FFD1DC]', 'bg-[#B5EAD7]', 'bg-[#FFDAC1]', 'bg-[#E2F0CB]'];
+                allClasses.forEach((c, idx) => {
                     const stdCount = c.students ? c.students.length : 0;
+                    const cardBg = pastelColors[idx % pastelColors.length];
                     cardsHtml += `
-                        <div onclick="document.getElementById('classSelector').value='${c.id}'; window.changeClass(); switchView('dashboard');" class="sticker bg-heart-cream p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:-translate-y-2 hover:shadow-xl transition-all group relative overflow-hidden border-[4px] border-white">
-                            <div class="absolute -right-6 -top-6 text-8xl text-heart-brown opacity-5 group-hover:rotate-12 transition-transform pointer-events-none"><i class="fa-solid fa-cat"></i></div>
-                            <div class="w-28 h-28 rounded-[2rem] overflow-hidden shadow-sm mb-4 z-10 bg-white flex items-center justify-center border-2 border-white">
+                        <div onclick="document.getElementById('classSelector').value='${c.id}'; window.changeClass(); switchView('dashboard');" class="sticker ${cardBg} p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:-translate-y-2 transition-all group relative overflow-hidden border-2 border-[#7A4B3A] shadow-[0_4px_0_#A87C6D]">
+                            <div class="absolute -right-6 -top-6 text-8xl text-heart-brown opacity-20 group-hover:rotate-12 transition-transform pointer-events-none"><i class="fa-solid fa-cat"></i></div>
+                            <div class="w-28 h-28 rounded-[2rem] overflow-hidden shadow-[0_4px_0_#A87C6D] mb-4 z-10 bg-white flex items-center justify-center border-2 border-[#7A4B3A]">
                                 <img src="./logo/ไอคอนแอพ/Lalis Class Home.png" alt="Class Logo" class="w-full h-full object-cover scale-[1.3] transform group-hover:scale-[1.4] transition-transform duration-300">
                             </div>
                             
-                            <h3 class="font-bold text-2xl text-heart-brown mb-1 z-10">${c.name}</h3>
-                            <p class="text-sm text-heart-brown/60 font-number mb-6 z-10">รหัส: ${c.id}</p>
+                            <h3 class="font-bold text-2xl text-[#7A4B3A] mb-1 z-10">${c.name}</h3>
+                            <p class="text-sm text-[#7A4B3A]/80 font-number mb-6 z-10">รหัส: ${c.id}</p>
                             
-                            <div class="bg-white rounded-2xl px-4 py-3 flex items-center justify-between gap-3 shadow-sm border-2 border-slate-50 z-10 w-full group-hover:bg-heart-pink/10 transition-colors">
-                                <span class="text-sm font-bold text-slate-500 flex items-center gap-2"><i class="fa-solid fa-user-group text-cozy-pink"></i> สมาชิก</span>
-                                <span class="font-number font-black text-2xl text-heart-brown">${stdCount} <span class="text-sm font-sans font-normal text-slate-400">คน</span></span>
+                            <div class="bg-white/90 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 shadow-[0_2px_0_#A87C6D] border-2 border-[#7A4B3A]/20 z-10 w-full group-hover:bg-white transition-colors">
+                                <span class="text-sm font-bold text-[#7A4B3A]/80 flex items-center gap-2"><i class="fa-solid fa-user-group text-[#F28C8C]"></i> สมาชิก</span>
+                                <span class="font-number font-black text-2xl text-[#7A4B3A]">${stdCount} <span class="text-sm font-sans font-normal text-[#7A4B3A]/60">คน</span></span>
                             </div>
                         </div>`;
                 });
