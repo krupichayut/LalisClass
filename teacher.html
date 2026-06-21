@@ -2703,7 +2703,7 @@
                 try {
                     await db.collection('classes').doc(currentClassId).update({ gradeColumns: gradeColumns });
                     closeModal();
-                    renderGrades();
+                    renderSpreadsheet();
                     renderDashboard();
                 } catch(e) {
                     console.error(e);
@@ -2733,7 +2733,7 @@
                 try {
                     await db.collection('classes').doc(currentClassId).update({ gradeColumns: gradeColumns });
                     closeModal();
-                    renderGrades();
+                    renderSpreadsheet();
                     renderDashboard();
                 } catch(e) {
                     console.error(e);
