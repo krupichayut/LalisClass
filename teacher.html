@@ -1562,8 +1562,19 @@
             } else {
                 // Category View
                 activeCols = gradeColumns.filter(c => c.cat === currentGradeTab);
-                activeCols.forEach(col => {
-                    headHtml += `<th class="p-3 text-center border-r-2 border-dashed border-heart-border/30 min-w-[100px] hover:bg-heart-pink/20 transition-colors cursor-pointer" title="คลิกเพื่อแก้ไข" onclick="openEditColModal('${col.id}')">${col.name}<br><span class="text-xs font-normal text-slate-400">(เต็มดิบ ${col.max})</span></th>`;
+                activeCols.forEach((col, idx) => {
+                    let isFirst = idx === 0;
+                    let isLast = idx === activeCols.length - 1;
+                    let arrowHtml = `
+                        <div class="flex justify-center gap-3 mt-2 text-lg" onclick="event.stopPropagation()">
+                            <button onclick="moveColLeft('${col.id}')" class="text-slate-200 hover:text-cozy-purple hover:scale-110 transition-all ${isFirst ? 'opacity-0 cursor-default' : ''}" ${isFirst ? 'disabled' : ''} title="เลื่อนซ้าย"><i class="fa-solid fa-circle-arrow-left"></i></button>
+                            <button onclick="moveColRight('${col.id}')" class="text-slate-200 hover:text-cozy-purple hover:scale-110 transition-all ${isLast ? 'opacity-0 cursor-default' : ''}" ${isLast ? 'disabled' : ''} title="เลื่อนขวา"><i class="fa-solid fa-circle-arrow-right"></i></button>
+                        </div>
+                    `;
+                    headHtml += `<th class="p-3 text-center border-r-2 border-dashed border-heart-border/30 min-w-[130px] hover:bg-heart-pink/20 transition-colors cursor-pointer group" title="คลิกเพื่อแก้ไข" onclick="openEditColModal('${col.id}')">
+                        ${col.name}<br><span class="text-xs font-normal text-slate-400">(เต็มดิบ ${col.max})</span>
+                        ${arrowHtml}
+                    </th>`;
                 });
                 
                 let targetMax = weights[currentGradeTab] || 0;
