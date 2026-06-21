@@ -462,7 +462,7 @@
         <!-- VIEW 3: GRADING (Spreadsheet-Centric)      -->
         <!-- ========================================== -->
         <div id="view-grading" class="view-section hidden max-w-[95%] mx-auto">
-            <header class="mb-6 flex items-center justify-between">
+            <header class="mb-6 flex flex-col xl:flex-row xl:items-end justify-between gap-4">
                 <div>
                     <div class="flex items-center gap-3">
                         <span class="text-3xl">📝</span>
@@ -470,14 +470,14 @@
                     </div>
                     <p class="text-heart-brown/80 mt-1">คีย์คะแนนได้รวดเร็วด้วยปุ่มลูกศร (Arrow Keys) บนแป้นพิมพ์</p>
                 </div>
-                <div class="flex gap-2">
-                    <button onclick="exportGradesToExcel()" class="pill-button bg-green-50 text-green-600 border-2 border-white px-4 py-2 rounded-2xl font-bold shadow-sm flex items-center gap-2 hover:bg-green-100">
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="exportGradesToExcel()" class="pill-button bg-green-50 text-green-600 border-2 border-white px-4 py-2 rounded-2xl font-bold shadow-sm flex items-center gap-2 hover:bg-green-100 whitespace-nowrap">
                         <i class="fa-solid fa-file-excel"></i> ส่งออก Excel
                     </button>
-                    <button onclick="openGradeSettingsModal()" class="pill-button bg-white border-2 border-white text-heart-brown px-4 py-2 rounded-2xl font-bold shadow-sm flex items-center gap-2 hover:bg-slate-50">
+                    <button onclick="openGradeSettingsModal()" class="pill-button bg-white border-2 border-white text-heart-brown px-4 py-2 rounded-2xl font-bold shadow-sm flex items-center gap-2 hover:bg-slate-50 whitespace-nowrap">
                         <i class="fa-solid fa-gear"></i> ตั้งค่าสัดส่วน
                     </button>
-                    <button onclick="openAddColModal()" class="pill-button bg-[#C4A4F9] border-[3px] border-white text-white px-5 py-2.5 rounded-2xl font-bold shadow-sm flex items-center gap-2 hover:bg-[#B084F5] hover:text-white">
+                    <button onclick="openAddColModal()" class="pill-button bg-[#C4A4F9] border-[3px] border-white text-white px-5 py-2.5 rounded-2xl font-bold shadow-sm flex items-center gap-2 hover:bg-[#B084F5] hover:text-white whitespace-nowrap">
                         <i class="fa-solid fa-plus"></i> เพิ่มช่องคะแนน
                     </button>
                 </div>
