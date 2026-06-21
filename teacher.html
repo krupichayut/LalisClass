@@ -2682,6 +2682,65 @@
                 document.getElementById('teacherAuthOverlay').classList.remove('opacity-0');
             }, 10);
         }
+        window.moveColLeft = async function(colId) {
+            let idx = gradeColumns.findIndex(c => c.id === colId);
+            if (idx <= 0) return;
+            
+            let col = gradeColumns[idx];
+            let prevIdx = -1;
+            for(let i = idx - 1; i >= 0; i--) {
+                if(gradeColumns[i].cat === col.cat) {
+                    prevIdx = i;
+                    break;
+                }
+            }
+            if(prevIdx !== -1) {
+                let temp = gradeColumns[idx];
+                gradeColumns[idx] = gradeColumns[prevIdx];
+                gradeColumns[prevIdx] = temp;
+                
+                showModal('กำลังสลับตำแหน่ง...', '', '<i class="fa-solid fa-spinner fa-spin"></i>', 'text-cozy-blue');
+                try {
+                    await db.collection('classes').doc(currentClassId).update({ gradeColumns: gradeColumns });
+                    closeModal();
+                    renderGrades();
+                    renderDashboard();
+                } catch(e) {
+                    console.error(e);
+                    showModal('ผิดพลาด', 'ไม่สามารถปรับลำดับได้', '<i class="fa-solid fa-xmark"></i>', 'text-red-500');
+                }
+            }
+        };
+
+        window.moveColRight = async function(colId) {
+            let idx = gradeColumns.findIndex(c => c.id === colId);
+            if (idx < 0 || idx >= gradeColumns.length - 1) return;
+            
+            let col = gradeColumns[idx];
+            let nextIdx = -1;
+            for(let i = idx + 1; i < gradeColumns.length; i++) {
+                if(gradeColumns[i].cat === col.cat) {
+                    nextIdx = i;
+                    break;
+                }
+            }
+            if(nextIdx !== -1) {
+                let temp = gradeColumns[idx];
+                gradeColumns[idx] = gradeColumns[nextIdx];
+                gradeColumns[nextIdx] = temp;
+                
+                showModal('กำลังสลับตำแหน่ง...', '', '<i class="fa-solid fa-spinner fa-spin"></i>', 'text-cozy-blue');
+                try {
+                    await db.collection('classes').doc(currentClassId).update({ gradeColumns: gradeColumns });
+                    closeModal();
+                    renderGrades();
+                    renderDashboard();
+                } catch(e) {
+                    console.error(e);
+                    showModal('ผิดพลาด', 'ไม่สามารถปรับลำดับได้', '<i class="fa-solid fa-xmark"></i>', 'text-red-500');
+                }
+            }
+        };
 </script>
     <!-- Add Class Modal -->
     <div id="addClassModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 transition-opacity duration-300 opacity-0">
