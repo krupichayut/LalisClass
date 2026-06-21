@@ -2704,7 +2704,7 @@
                     await db.collection('classes').doc(currentClassId).update({ gradeColumns: gradeColumns });
                     closeModal();
                     renderSpreadsheet();
-                    renderDashboard();
+                    updateDashboardKPIs();
                 } catch(e) {
                     console.error(e);
                     showModal('ผิดพลาด', 'ไม่สามารถปรับลำดับได้', '<i class="fa-solid fa-xmark"></i>', 'text-red-500');
@@ -2734,7 +2734,7 @@
                     await db.collection('classes').doc(currentClassId).update({ gradeColumns: gradeColumns });
                     closeModal();
                     renderSpreadsheet();
-                    renderDashboard();
+                    updateDashboardKPIs();
                 } catch(e) {
                     console.error(e);
                     showModal('ผิดพลาด', 'ไม่สามารถปรับลำดับได้', '<i class="fa-solid fa-xmark"></i>', 'text-red-500');
