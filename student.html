@@ -153,7 +153,12 @@
     </div>
 
     <script>
-        // FIREBASE SETUP
+        // --- 1. FIREBASE SETUP & STATE ---
+        const originalWarn = console.warn;
+        console.warn = function(...args) {
+            if (typeof args[0] === 'string' && args[0].includes('enableIndexedDbPersistence')) return;
+            originalWarn.apply(console, args);
+        };
         const firebaseConfig = {
             apiKey: "AIzaSyBWO___EuOpmVHhTq7QN68mAvbphpcb3-A",
             authDomain: "moneyflow-c855c.firebaseapp.com",
