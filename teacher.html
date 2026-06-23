@@ -1116,10 +1116,11 @@
                         </div>
                     </div>
                     <div class="flex gap-2 w-full md:w-auto flex-1 justify-center ${isTransferred ? 'pointer-events-none' : ''}">
-                        <button onclick="toggleAtt('${std.id}', 'present')" class="flex-1 py-3 px-2 rounded-2xl text-sm font-bold border-[3px] transition-all shadow-sm ${s === 'present' ? 'bg-[#A8E6CF] border-white text-heart-brown transform scale-105' : 'bg-white border-transparent text-slate-400 hover:bg-[#A8E6CF]/30'}">⭐️ มา</button>
-                        <button onclick="toggleAtt('${std.id}', 'late')" class="flex-1 py-3 px-2 rounded-2xl text-sm font-bold border-[3px] transition-all shadow-sm ${s === 'late' ? 'bg-[#FDFD96] border-white text-heart-brown transform scale-105' : 'bg-white border-transparent text-slate-400 hover:bg-[#FDFD96]/50'}">🌸 สาย</button>
-                        <button onclick="toggleAtt('${std.id}', 'leave')" class="flex-1 py-3 px-2 rounded-2xl text-sm font-bold border-[3px] transition-all shadow-sm ${s === 'leave' ? 'bg-[#FFD8B1] border-white text-heart-brown transform scale-105' : 'bg-white border-transparent text-slate-400 hover:bg-[#FFD8B1]/50'}">💖 ลา</button>
-                        <button onclick="toggleAtt('${std.id}', 'absent')" class="flex-1 py-3 px-2 rounded-2xl text-sm font-bold border-[3px] transition-all shadow-sm ${s === 'absent' ? 'bg-[#FF9AA2] border-white text-[#7a1c22] transform scale-105' : 'bg-white border-transparent text-slate-400 hover:bg-[#FF9AA2]/30'}">❌ ขาด</button>
+                        <button onclick="toggleAtt('${std.id}', 'present')" class="flex-1 py-3 px-1 md:px-2 rounded-2xl text-xs md:text-sm font-bold border-[3px] transition-all shadow-sm ${s === 'present' ? 'bg-[#A8E6CF] border-white text-heart-brown transform scale-105' : 'bg-white border-transparent text-slate-400 hover:bg-[#A8E6CF]/30'}">⭐️ มา</button>
+                        <button onclick="toggleAtt('${std.id}', 'late')" class="flex-1 py-3 px-1 md:px-2 rounded-2xl text-xs md:text-sm font-bold border-[3px] transition-all shadow-sm ${s === 'late' ? 'bg-[#FDFD96] border-white text-heart-brown transform scale-105' : 'bg-white border-transparent text-slate-400 hover:bg-[#FDFD96]/50'}">🌸 สาย</button>
+                        <button onclick="toggleAtt('${std.id}', 'leave')" class="flex-1 py-3 px-1 md:px-2 rounded-2xl text-xs md:text-sm font-bold border-[3px] transition-all shadow-sm ${s === 'leave' ? 'bg-[#FFD8B1] border-white text-heart-brown transform scale-105' : 'bg-white border-transparent text-slate-400 hover:bg-[#FFD8B1]/50'}">💖 ลา</button>
+                        <button onclick="toggleAtt('${std.id}', 'absent')" class="flex-1 py-3 px-1 md:px-2 rounded-2xl text-xs md:text-sm font-bold border-[3px] transition-all shadow-sm ${s === 'absent' ? 'bg-[#FF9AA2] border-white text-[#7a1c22] transform scale-105' : 'bg-white border-transparent text-slate-400 hover:bg-[#FF9AA2]/30'}">❌ ขาด</button>
+                        <button onclick="toggleAtt('${std.id}', 'activity')" class="flex-1 py-3 px-1 md:px-2 rounded-2xl text-xs md:text-sm font-bold border-[3px] transition-all shadow-sm ${s === 'activity' ? 'bg-[#D2B4DE] border-white text-purple-900 transform scale-105' : 'bg-white border-transparent text-slate-400 hover:bg-[#D2B4DE]/50'}">🏅 กิจ</button>
                     </div>
                     <div class="w-full md:w-auto text-right md:text-center mt-2 md:mt-0">
                         <div class="inline-flex items-center justify-center px-4 py-2 rounded-2xl text-sm font-bold font-number shadow-sm ${isDanger && !isTransferred ? 'bg-red-100 text-red-600' : 'bg-heart-green/10 text-heart-green'}">
@@ -1195,7 +1196,7 @@
                     const std = classData.students.find(s => s.id == stdId);
                     if(std && std.status !== 'transferred') {
                         std.att.total++;
-                        if(record.isHoliday || status === 'present' || status === 'late') {
+                        if(record.isHoliday || status === 'present' || status === 'late' || status === 'activity') {
                             std.att.present++;
                         }
                     }
@@ -1398,13 +1399,14 @@
             html += '<th class="p-2 text-center bg-orange-50/80 min-w-[35px]">สาย</th>';
             html += '<th class="p-2 text-center bg-purple-50/80 min-w-[35px]">ลา</th>';
             html += '<th class="p-2 text-center bg-pink-50/80 min-w-[35px]">ขาด</th>';
+            html += '<th class="p-2 text-center bg-indigo-50/80 min-w-[35px]">กิจ</th>';
             html += '<th class="p-2 text-center bg-green-50/80 min-w-[40px]">รวม</th>';
             html += '<th class="p-2 text-center bg-green-50/80 min-w-[40px]">%</th>';
             html += '</tr></thead><tbody>';
 
             MOCK_STUDENTS.forEach((std) => {
                 if(std.status === 'transferred') return;
-                let totalP=0, totalL=0, totalLv=0, totalA=0;
+                let totalP=0, totalL=0, totalLv=0, totalA=0, totalAct=0;
                 let totalDaysWithRecords = 0;
                 
                 html += `<tr class="border-b border-slate-50 hover:bg-slate-50/80">`;
@@ -1429,6 +1431,7 @@
                             else if(s === 'late') { content = 'ส'; bg = 'bg-orange-100 text-orange-600'; totalL++; }
                             else if(s === 'leave') { content = 'ล'; bg = 'bg-purple-100 text-purple-600'; totalLv++; }
                             else if(s === 'absent') { content = '✗'; bg = 'bg-pink-100 text-pink-600'; totalA++; }
+                            else if(s === 'activity') { content = 'ก'; bg = 'bg-indigo-100 text-indigo-600'; totalAct++; }
                             else { content = '-'; bg = 'bg-slate-100 text-slate-400'; }
                         }
                     }
@@ -1437,13 +1440,14 @@
                     </td>`;
                 }
 
-                const presentCount = totalP + totalL;
+                const presentCount = totalP + totalL + totalAct;
                 const pct = totalDaysWithRecords > 0 ? Math.round((presentCount / totalDaysWithRecords) * 100) : 100;
                 
                 html += `<td class="p-1 text-center text-xs font-number font-bold text-blue-600 bg-blue-50/30">${totalP}</td>`;
                 html += `<td class="p-1 text-center text-xs font-number font-bold text-orange-500 bg-orange-50/30">${totalL}</td>`;
                 html += `<td class="p-1 text-center text-xs font-number font-bold text-purple-500 bg-purple-50/30">${totalLv}</td>`;
                 html += `<td class="p-1 text-center text-xs font-number font-bold text-pink-500 bg-pink-50/30">${totalA}</td>`;
+                html += `<td class="p-1 text-center text-xs font-number font-bold text-indigo-500 bg-indigo-50/30">${totalAct}</td>`;
                 html += `<td class="p-1 text-center text-xs font-number font-bold text-green-600 bg-green-50/30">${presentCount}/${totalDaysWithRecords}</td>`;
                 html += `<td class="p-1 text-center text-xs font-number font-bold ${pct < 80 ? 'text-red-600 bg-red-50/50' : 'text-green-600 bg-green-50/30'}">${pct}%</td>`;
                 html += '</tr>';
