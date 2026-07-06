@@ -184,6 +184,39 @@
             if (e.key === 'Enter') loginStudent();
         });
 
+        function isInactiveStudent(student) {
+            return !!(student && (student.status === 'transferred' || student.deletedAt || student.archivedAt || student.isDeleted || student.status === 'deleted'));
+        }
+
+        async function findStudentByIndex(stdCode) {
+            const indexDoc = await db.collection('studentIndex').doc(stdCode).get();
+            if(!indexDoc.exists) return null;
+            const index = indexDoc.data();
+            if(!index || !index.classId || index.status === 'transferred' || index.deletedAt) return null;
+
+            const classDoc = await db.collection('classes').doc(index.classId).get();
+            if(!classDoc.exists) return null;
+            const classData = classDoc.data();
+            if(classData.archivedAt || classData.deletedAt || classData.isDeleted) return null;
+
+            const std = (classData.students || []).find(s => String(s.stdCode) === stdCode || String(s.id) === String(index.studentId));
+            if(!std || isInactiveStudent(std)) return null;
+            return { student: std, classInfo: { id: classDoc.id, ...classData } };
+        }
+
+        async function findStudentByScanningClasses(stdCode) {
+            const snapshot = await db.collection('classes').get();
+            let result = null;
+            snapshot.forEach(doc => {
+                if(result) return;
+                const classData = doc.data();
+                if(classData.archivedAt || classData.deletedAt || classData.isDeleted) return;
+                const std = (classData.students || []).find(s => String(s.stdCode) === stdCode && !isInactiveStudent(s));
+                if(std) result = { student: std, classInfo: { id: doc.id, ...classData } };
+            });
+            return result;
+        }
+
         async function loginStudent() {
             const input = document.getElementById('studentIdInput').value.trim();
             const btn = document.getElementById('loginBtn');
@@ -195,23 +228,12 @@
             error.classList.add('hidden');
 
             try {
-                // Fetch all classes
-                const snapshot = await db.collection('classes').get();
-                let found = false;
-                
-                snapshot.forEach(doc => {
-                    const classData = doc.data();
-                    if(classData.students) {
-                        const std = classData.students.find(s => String(s.stdCode) === input);
-                        if(std) {
-                            loggedInStudent = std;
-                            loggedInClass = { id: doc.id, ...classData };
-                            found = true;
-                        }
-                    }
-                });
+                let result = await findStudentByIndex(input);
+                if(!result) result = await findStudentByScanningClasses(input);
 
-                if(found) {
+                if(result) {
+                    loggedInStudent = result.student;
+                    loggedInClass = result.classInfo;
                     sessionStorage.setItem('lalis_student_id', input);
                     renderDashboard();
                     document.getElementById('loginView').classList.add('opacity-0', 'pointer-events-none');

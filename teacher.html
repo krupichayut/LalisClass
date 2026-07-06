@@ -608,7 +608,9 @@
                         <p class="text-xs text-slate-400 mt-1">รหัสผ่าน 4 หลัก สำหรับล็อคอินเข้าระบบจัดการ</p>
                     </div>
                 </div>
-                <div class="mt-6 flex justify-end">
+                <div class="mt-6 flex flex-wrap justify-end gap-2">
+                    <button onclick="exportSystemBackup()" class="bg-green-50 text-green-700 border border-green-200 px-6 py-2 rounded-xl font-bold shadow-sm hover:bg-green-100 transition-all"><i class="fa-solid fa-download mr-2"></i>สำรองข้อมูลทั้งหมด</button>
+                    <button onclick="rebuildStudentIndex()" class="bg-white text-blue-700 border border-blue-200 px-6 py-2 rounded-xl font-bold shadow-sm hover:bg-blue-50 transition-all"><i class="fa-solid fa-id-card mr-2"></i>สร้างดัชนีนักเรียน</button>
                     <button onclick="saveSchoolSettings()" class="bg-cozy-blue text-white px-6 py-2 rounded-xl font-bold shadow-sm hover:bg-blue-600 transition-all"><i class="fa-solid fa-save mr-2"></i>บันทึกข้อมูล</button>
                 </div>
             </div>
@@ -693,6 +695,268 @@
         db.enablePersistence().catch(err => {
             console.log("Persistence error:", err);
         });
+
+        function getSafeTimestamp() {
+            return new Date().toISOString().replace(/[:.]/g, '-');
+        }
+
+        function formatSaveError(error) {
+            const code = error && error.code ? error.code : '';
+            const message = error && error.message ? error.message : String(error || 'ไม่ทราบสาเหตุ');
+            if(code === 'permission-denied') return 'สิทธิ์ Firestore ไม่อนุญาตให้บันทึกข้อมูล';
+            if(code === 'unavailable') return 'เชื่อมต่อ Firestore ไม่ได้ชั่วคราว โปรดลองใหม่';
+            if(code === 'resource-exhausted') return 'ข้อมูลห้องเรียนมีขนาดใหญ่เกินหรือใช้ quota เกิน';
+            if(message.toLowerCase().includes('maximum') || message.toLowerCase().includes('size')) return 'ข้อมูลเอกสารห้องเรียนอาจใหญ่เกินขีดจำกัดของ Firestore';
+            return message;
+        }
+
+        function isSoftDeleted(item) {
+            return !!(item && (item.deletedAt || item.archivedAt || item.isDeleted || item.status === 'deleted'));
+        }
+
+        function isInactiveStudent(student) {
+            return !!(student && (student.status === 'transferred' || isSoftDeleted(student)));
+        }
+
+        function getActiveGradeColumns(columns = gradeColumns) {
+            return (columns || []).filter(col => !isSoftDeleted(col));
+        }
+
+        function downloadJsonFile(filename, data) {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        async function buildSystemBackup(actionLabel = 'manual') {
+            const [classesSnap, settingsSnap, studentIndexSnap] = await Promise.all([
+                db.collection('classes').get(),
+                db.collection('settings').get(),
+                db.collection('studentIndex').get()
+            ]);
+            const classes = [];
+            const settings = [];
+            const studentIndex = [];
+            classesSnap.forEach(doc => classes.push({ id: doc.id, data: doc.data() }));
+            settingsSnap.forEach(doc => settings.push({ id: doc.id, data: doc.data() }));
+            studentIndexSnap.forEach(doc => studentIndex.push({ id: doc.id, data: doc.data() }));
+            return {
+                metadata: {
+                    app: 'lalisclass',
+                    action: actionLabel,
+                    createdAt: new Date().toISOString(),
+                    schemaVersion: 1
+                },
+                classes,
+                settings,
+                studentIndex
+            };
+        }
+
+        window.exportSystemBackup = async function() {
+            showModal('กำลังสำรองข้อมูล...', 'กำลังดึงข้อมูลทั้งหมดจากฐานข้อมูล', '<i class="fa-solid fa-spinner fa-spin"></i>', 'text-cozy-blue');
+            try {
+                const backup = await buildSystemBackup('manual-export');
+                downloadJsonFile(`lalisclass-backup-${getSafeTimestamp()}.json`, backup);
+                showModal('สำรองข้อมูลแล้ว', 'ดาวน์โหลดไฟล์สำรองข้อมูลเรียบร้อย', '<i class="fa-solid fa-check"></i>', 'text-green-500');
+            } catch(e) {
+                console.error(e);
+                showModal('สำรองข้อมูลไม่สำเร็จ', 'ไม่สามารถดึงข้อมูลเพื่อสำรองได้ โปรดตรวจสอบอินเทอร์เน็ต', '<i class="fa-solid fa-xmark"></i>', 'text-cozy-red');
+            }
+        };
+
+        async function backupBeforeDanger(actionLabel) {
+            try {
+                const backup = await buildSystemBackup(actionLabel);
+                downloadJsonFile(`lalisclass-backup-before-${getSafeTimestamp()}.json`, backup);
+                return true;
+            } catch(e) {
+                console.error(e);
+                alert('ไม่สามารถสำรองข้อมูลก่อนทำรายการได้ ระบบจึงยกเลิกเพื่อป้องกันข้อมูลหาย');
+                return false;
+            }
+        }
+
+        function mergeImportedStudents(existingStudents = [], importedStudents = []) {
+            const merged = [...existingStudents];
+            importedStudents.forEach(imported => {
+                const idx = merged.findIndex(existing => {
+                    const sameCode = imported.stdCode && existing.stdCode && String(existing.stdCode) === String(imported.stdCode);
+                    const sameId = imported.id !== undefined && existing.id !== undefined && String(existing.id) === String(imported.id);
+                    const sameNumber = !imported.stdCode && !existing.stdCode && existing.number !== undefined && imported.number !== undefined && Number(existing.number) === Number(imported.number);
+                    return sameCode || sameId || sameNumber;
+                });
+                if (idx >= 0) {
+                    const existing = merged[idx];
+                    merged[idx] = {
+                        ...existing,
+                        id: existing.id !== undefined ? existing.id : imported.id,
+                        number: imported.number,
+                        stdCode: imported.stdCode || existing.stdCode,
+                        name: imported.name || existing.name,
+                        gender: imported.gender || existing.gender,
+                        status: imported.status || existing.status || 'active',
+                        previousStatus: imported.previousStatus || existing.previousStatus,
+                        deletedAt: imported.deletedAt || existing.deletedAt,
+                        deletedReason: imported.deletedReason || existing.deletedReason,
+                        att: existing.att || imported.att || { present: 0, total: 0 },
+                        scores: existing.scores || imported.scores || {}
+                    };
+                } else {
+                    merged.push({ ...imported, status: imported.status || 'active' });
+                }
+            });
+            return merged.sort((a, b) => (Number(a.number) || 0) - (Number(b.number) || 0));
+        }
+
+        function syncLocalClass(updatedClassData) {
+            if(!updatedClassData || !updatedClassData.id) return;
+            const idx = allClasses.findIndex(c => c.id === updatedClassData.id);
+            if(idx >= 0) {
+                allClasses[idx] = { ...allClasses[idx], ...updatedClassData };
+                if(currentClassId === updatedClassData.id) {
+                    MOCK_STUDENTS = allClasses[idx].students || [];
+                    gradeColumns = allClasses[idx].gradeColumns || gradeColumns;
+                }
+            }
+        }
+
+        async function upsertStudentsSafely(studentsToUpsert) {
+            const classRef = db.collection('classes').doc(currentClassId);
+            let updatedClassData = null;
+            await db.runTransaction(async transaction => {
+                const snap = await transaction.get(classRef);
+                if(!snap.exists) throw new Error('ไม่พบข้อมูลห้องเรียน');
+                const latest = snap.data();
+                const mergedStudents = mergeImportedStudents(latest.students || [], studentsToUpsert);
+                const updatedAt = new Date().toISOString();
+                transaction.update(classRef, {
+                    students: mergedStudents,
+                    updatedAt: updatedAt
+                });
+                studentsToUpsert.forEach(student => {
+                    if(!student || !student.stdCode) return;
+                    transaction.set(db.collection('studentIndex').doc(String(student.stdCode)), {
+                        classId: currentClassId,
+                        studentId: student.id,
+                        stdCode: String(student.stdCode),
+                        name: student.name || '',
+                        number: student.number || null,
+                        status: student.status || 'active',
+                        deletedAt: student.deletedAt || null,
+                        updatedAt: updatedAt
+                    }, { merge: true });
+                });
+                updatedClassData = { id: currentClassId, ...latest, students: mergedStudents };
+            });
+            syncLocalClass(updatedClassData);
+            return updatedClassData;
+        }
+
+        async function saveScoreSafely(studentId, colId, value) {
+            const classRef = db.collection('classes').doc(currentClassId);
+            let updatedClassData = null;
+            await db.runTransaction(async transaction => {
+                const snap = await transaction.get(classRef);
+                if(!snap.exists) throw new Error('ไม่พบข้อมูลห้องเรียน');
+                const latest = snap.data();
+                const students = latest.students || [];
+                const student = students.find(s => String(s.id) === String(studentId));
+                if(!student) throw new Error('ไม่พบนักเรียนในฐานข้อมูลล่าสุด');
+                if(!student.scores) student.scores = {};
+                student.scores[colId] = value;
+                transaction.update(classRef, {
+                    students: students,
+                    updatedAt: new Date().toISOString()
+                });
+                updatedClassData = { id: currentClassId, ...latest, students };
+            });
+            syncLocalClass(updatedClassData);
+            return updatedClassData;
+        }
+
+        async function saveAttendanceSafely(date, newRecord) {
+            const classRef = db.collection('classes').doc(currentClassId);
+            let updatedClassData = null;
+            await db.runTransaction(async transaction => {
+                const snap = await transaction.get(classRef);
+                if(!snap.exists) throw new Error('ไม่พบข้อมูลห้องเรียน');
+                const latest = snap.data();
+                const attendanceRecords = [...(latest.attendanceRecords || [])];
+                const existingIdx = attendanceRecords.findIndex(r => r.date === date);
+                if(existingIdx >= 0) {
+                    attendanceRecords[existingIdx] = { ...attendanceRecords[existingIdx], ...newRecord };
+                } else {
+                    attendanceRecords.push(newRecord);
+                }
+                const nextClassData = { id: currentClassId, ...latest, attendanceRecords };
+                recalculateAttendanceSummary(nextClassData);
+                transaction.update(classRef, {
+                    students: nextClassData.students || [],
+                    attendanceRecords: attendanceRecords,
+                    updatedAt: new Date().toISOString()
+                });
+                updatedClassData = nextClassData;
+            });
+            syncLocalClass(updatedClassData);
+            return updatedClassData;
+        }
+
+        async function rebuildStudentIndex() {
+            if(!confirm('สร้าง/อัปเดตดัชนีนักเรียนสำหรับหน้าเข้าสู่ระบบนักเรียน? ข้อมูลหลักจะไม่ถูกลบหรือเปลี่ยนแปลง')) return;
+            showModal('กำลังสร้างดัชนี...', 'กำลังอ่านรายชื่อนักเรียนทุกห้อง', '<i class="fa-solid fa-spinner fa-spin"></i>', 'text-cozy-blue');
+            try {
+                const snapshot = await db.collection('classes').get();
+                let batch = db.batch();
+                let opCount = 0;
+                let indexed = 0;
+                const commits = [];
+
+                async function flushBatch() {
+                    if(opCount === 0) return;
+                    commits.push(batch.commit());
+                    batch = db.batch();
+                    opCount = 0;
+                }
+
+                snapshot.forEach(doc => {
+                    const classData = doc.data();
+                    if(isSoftDeleted(classData)) return;
+                    (classData.students || []).forEach(student => {
+                        if(!student.stdCode || isInactiveStudent(student)) return;
+                        batch.set(db.collection('studentIndex').doc(String(student.stdCode)), {
+                            classId: doc.id,
+                            studentId: student.id,
+                            stdCode: String(student.stdCode),
+                            name: student.name || '',
+                            number: student.number || null,
+                            status: student.status || 'active',
+                            deletedAt: null,
+                            updatedAt: new Date().toISOString()
+                        }, { merge: true });
+                        opCount++;
+                        indexed++;
+                        if(opCount >= 450) {
+                            commits.push(batch.commit());
+                            batch = db.batch();
+                            opCount = 0;
+                        }
+                    });
+                });
+                await flushBatch();
+                await Promise.all(commits);
+                showModal('สร้างดัชนีแล้ว', 'อัปเดตดัชนีนักเรียนจำนวน ' + indexed + ' รายการเรียบร้อย', '<i class="fa-solid fa-check"></i>', 'text-green-500');
+            } catch(e) {
+                console.error(e);
+                showModal('สร้างดัชนีไม่สำเร็จ', 'โปรดลองใหม่อีกครั้ง: ' + e.message, '<i class="fa-solid fa-xmark"></i>', 'text-cozy-red');
+            }
+        }
 
         let MOCK_STUDENTS = []; // Now populated from DB
         let allClasses = [];
@@ -793,10 +1057,18 @@
                     showModal("กำลังนำเข้า...", "กำลังบันทึกข้อมูลลงฐานข้อมูล", '<i class="fa-solid fa-spinner fa-spin"></i>', 'text-cozy-blue');
                     
                     try {
+                        if(!(await backupBeforeDanger('นำเข้า CSV รายชื่อนักเรียน'))) return;
                         const batch = db.batch();
                         for (const [className, students] of Object.entries(studentsByClass)) {
                             const classRef = db.collection('classes').doc(className.replace(/\//g, '_'));
-                            batch.set(classRef, { name: className, students: students });
+                            const existingDoc = await classRef.get();
+                            const existingData = existingDoc.exists ? existingDoc.data() : {};
+                            const mergedStudents = mergeImportedStudents(existingData.students || [], students);
+                            batch.set(classRef, {
+                                name: className,
+                                students: mergedStudents,
+                                updatedAt: new Date().toISOString()
+                            }, { merge: true });
                         }
                         await batch.commit();
                         showModal("สำเร็จ!", "นำเข้าข้อมูลรายชื่อเรียบร้อยแล้ว", "✨", "text-green-500");
@@ -814,9 +1086,12 @@
             const select = document.getElementById('classSelector');
             select.innerHTML = '<option value="">-- เลือกห้องเรียน --</option>';
             allClasses = [];
+            let hasClassDocs = false;
             
             snapshot.forEach(doc => {
+                hasClassDocs = true;
                 const data = doc.data();
+                if(isSoftDeleted(data)) return;
                 allClasses.push({ id: doc.id, ...data });
                 const opt = document.createElement('option');
                 opt.value = doc.id;
@@ -825,7 +1100,7 @@
             });
             
             
-            if (allClasses.length === 0) {
+            if (!hasClassDocs) {
                 // Seed mock data
                 const mockArt = {
                     name: 'ศิลปะ ป.1',
@@ -872,6 +1147,7 @@
                 const newSnap = await db.collection('classes').get();
                 newSnap.forEach(doc => {
                     const data = doc.data();
+                    if(isSoftDeleted(data)) return;
                     allClasses.push({ id: doc.id, ...data });
                     const opt = document.createElement('option');
                     opt.value = doc.id;
@@ -1146,7 +1422,7 @@
 
         function markAllPresent() {
             MOCK_STUDENTS.forEach(std => {
-                if(std.status !== 'transferred') currentAttSession[std.id] = 'present';
+                if(!isInactiveStudent(std)) currentAttSession[std.id] = 'present';
             });
             renderAttendance();
         }
@@ -1160,9 +1436,6 @@
             
             const classData = allClasses.find(c => c.id === currentClassId);
             if(!classData) return;
-            if(!classData.attendanceRecords) classData.attendanceRecords = [];
-            
-            const existingIdx = classData.attendanceRecords.findIndex(r => r.date === date);
             const newRecord = {
                 id: Date.now().toString(),
                 date: date,
@@ -1171,19 +1444,8 @@
                 records: { ...currentAttSession }
             };
             
-            if(existingIdx >= 0) {
-                classData.attendanceRecords[existingIdx] = newRecord;
-            } else {
-                classData.attendanceRecords.push(newRecord);
-            }
-            
-            recalculateAttendanceSummary(classData);
-            
             try {
-                await db.collection('classes').doc(currentClassId).update({ 
-                    students: classData.students,
-                    attendanceRecords: classData.attendanceRecords
-                });
+                await saveAttendanceSafely(date, newRecord);
                 showModal('บันทึกสำเร็จ', 'บันทึกข้อมูลเวลาเรียนวันที่ ' + date + ' เรียบร้อย', '✨', 'text-yellow-400');
                 updateDashboardKPIs();
             } catch (e) {
@@ -1351,7 +1613,8 @@
         };
 
         window.deleteAttFromCal = async function(dateStr) {
-            if(!confirm('ลบข้อมูลเช็คชื่อวันที่ ' + dateStr + ' ?')) return;
+            if(!confirm('ลบข้อมูลเช็คชื่อวันที่ ' + dateStr + ' ? ระบบจะสำรองข้อมูลก่อนลบ')) return;
+            if(!(await backupBeforeDanger('ลบข้อมูลเช็คชื่อ ' + dateStr))) return;
             const classData = allClasses.find(c => c.id === currentClassId);
             if(!classData || !classData.attendanceRecords) return;
             classData.attendanceRecords = classData.attendanceRecords.filter(r => r.date !== dateStr);
@@ -1489,7 +1752,7 @@
         }
 
         function getCategoryTotal(student, catId) {
-            let cols = gradeColumns.filter(c => c.cat === catId);
+            let cols = getActiveGradeColumns().filter(c => c.cat === catId);
             let rawTotal = 0;
             let rawMax = 0;
             cols.forEach(c => {
@@ -1571,7 +1834,7 @@
                 `;
             } else {
                 // Category View
-                activeCols = gradeColumns.filter(c => c.cat === currentGradeTab);
+                activeCols = getActiveGradeColumns().filter(c => c.cat === currentGradeTab);
                 activeCols.forEach((col, idx) => {
                     let isFirst = idx === 0;
                     let isLast = idx === activeCols.length - 1;
@@ -1605,7 +1868,8 @@
             }
 
             MOCK_STUDENTS.forEach((std, rIdx) => {
-                const isTransferred = std.status === 'transferred';
+                if(!std.scores) std.scores = {};
+                const isTransferred = isInactiveStudent(std);
                 let t0 = getAttendanceScore(std);
 
                 bodyHtml += `<tr class="hover:bg-slate-50 transition-colors ${isTransferred ? 'opacity-50' : ''}">
@@ -1715,7 +1979,7 @@
 
         // Update state when input changes
         window.updateScore = async function(inputEl) {
-            let stdId = parseInt(inputEl.getAttribute('data-stdid'));
+            let stdId = inputEl.getAttribute('data-stdid');
             let colId = inputEl.getAttribute('data-colid');
             let val = parseFloat(inputEl.value);
             
@@ -1723,17 +1987,19 @@
             if(colDef && !isNaN(val) && val > colDef.max) {
                 showModal('คะแนนเกินกำหนด!', `คะแนนช่องนี้เต็ม ${colDef.max} เท่านั้นครับ`, '<i class="fa-solid fa-triangle-exclamation"></i>', 'text-orange-500');
                 inputEl.value = '';
-                val = NaN;
                 setTimeout(() => inputEl.focus(), 100);
+                return;
             } else if (!isNaN(val) && val < 0) {
                 showModal('ข้อมูลไม่ถูกต้อง', `คะแนนต้องไม่ติดลบครับ`, '<i class="fa-solid fa-circle-exclamation"></i>', 'text-red-500');
                 inputEl.value = '';
-                val = NaN;
                 setTimeout(() => inputEl.focus(), 100);
+                return;
             }
 
-            let student = MOCK_STUDENTS.find(s => s.id === stdId);
+            let student = MOCK_STUDENTS.find(s => String(s.id) === String(stdId));
             if(student) {
+                if(!student.scores) student.scores = {};
+                const previousValue = student.scores[colId];
                 if(isNaN(val)) {
                     student.scores[colId] = null;
                     inputEl.classList.remove('bg-pink-50', 'text-red-500');
@@ -1760,12 +2026,21 @@
                     try {
                         const origBg = inputEl.style.backgroundColor;
                         inputEl.style.backgroundColor = '#dcfce7'; // light green to indicate save
-                        await db.collection('classes').doc(currentClassId).update({ students: MOCK_STUDENTS });
+                        await saveScoreSafely(stdId, colId, isNaN(val) ? null : val);
                         setTimeout(() => { inputEl.style.backgroundColor = origBg; }, 800);
                     } catch(e) { 
                         console.error("Error saving score", e); 
+                        student.scores[colId] = previousValue;
+                        inputEl.value = previousValue !== undefined && previousValue !== null ? previousValue : '';
+                        if(subTotalCell) {
+                            const { rawTotal, rawMax } = getCategoryTotal(student, currentGradeTab);
+                            const scaled = getCategoryScaled(student, currentGradeTab);
+                            subTotalCell.innerHTML = `<div class="text-[10px] text-slate-400 mb-0.5">ดิบ ${rawTotal}/${rawMax}</div><div class="font-bold text-purple-700 text-base">${scaled}</div>`;
+                        }
+                        updateDashboardKPIs();
                         inputEl.style.backgroundColor = '#fee2e2'; // light red
-                        showModal('บันทึกไม่สำเร็จ', 'ไม่สามารถบันทึกคะแนนได้ โปรดตรวจสอบอินเทอร์เน็ต', '<i class="fa-solid fa-wifi text-cozy-red"></i>', 'text-cozy-red');
+                        const reason = formatSaveError(e);
+                        showModal('บันทึกคะแนนไม่สำเร็จ', reason, '<i class="fa-solid fa-triangle-exclamation"></i>', 'text-cozy-red');
                     }
                 }
             }
@@ -1782,8 +2057,9 @@
             let missingCount = 0;
 
             MOCK_STUDENTS.forEach(std => {
+                if(isInactiveStudent(std)) return;
                 if(!std.scores) std.scores = {};
-                gradeColumns.forEach(col => {
+                getActiveGradeColumns().forEach(col => {
                     if(std.scores[col.id] === null || std.scores[col.id] === undefined) {
                         missingCount++;
                         // Determine category name
@@ -1833,16 +2109,20 @@
                 return;
             }
 
-            let student = MOCK_STUDENTS.find(s => s.id === stdId);
+            let student = MOCK_STUDENTS.find(s => String(s.id) === String(stdId));
             if(student) {
+                if(!student.scores) student.scores = {};
                 student.scores[colId] = val; // Resolve
                 updateDashboardKPIs(); // Updates badge
                 renderMissing(); // Re-render grid
                 
                 if(currentClassId) {
                     try {
-                        await db.collection('classes').doc(currentClassId).update({ students: MOCK_STUDENTS });
-                    } catch(e) { console.error("Error saving score", e); }
+                        await saveScoreSafely(stdId, colId, val);
+                    } catch(e) {
+                        console.error("Error saving score", e);
+                        showModal('บันทึกคะแนนไม่สำเร็จ', formatSaveError(e), '<i class="fa-solid fa-triangle-exclamation"></i>', 'text-cozy-red');
+                    }
                 }
                 
                 // Show toast or subtle notification
@@ -2005,7 +2285,7 @@
                     // Aggregate grades across all classes
                     let grades = { '4': 0, '3.5': 0, '3': 0, '2.5': 0, '2': 0, '1.5': 0, '1': 0, '0': 0 };
                     allClasses.forEach(c => {
-                        const stds = c.students || [];
+                        const stds = (c.students || []).filter(s => !isInactiveStudent(s));
                         const weights = c.gradeWeights || {T1:25, T2:25, T3:25, T4:25};
                         // Helper to calc total using class specific weights is complex here if we don't have access to global state.
                         // But wait, getGradeString uses a total out of 100. Let's approximate or just do exactly what getFullScore does.
@@ -2150,7 +2430,7 @@
                 <tr class="border-b border-slate-100 last:border-0 hover:bg-slate-50">
                     <td class="p-3 font-number text-heart-brown/80">${c.id}</td>
                     <td class="p-3 font-bold text-heart-brown">${c.name}</td>
-                    <td class="p-3 text-center font-number">${(c.students || []).length}</td>
+                    <td class="p-3 text-center font-number">${(c.students || []).filter(s => !isInactiveStudent(s)).length}</td>
                     <td class="p-3 text-center">
                         <button onclick="deleteClass('${c.id}')" class="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-100"><i class="fa-solid fa-trash"></i></button>
                     </td>
@@ -2194,9 +2474,13 @@
         };
         
         window.deleteClass = async function(id) {
-            if(confirm('ยืนยันการลบห้องเรียน ' + id + ' ? ข้อมูลทั้งหมดจะหายไป')) {
+            if(confirm('ยืนยันการเก็บห้องเรียน ' + id + ' ออกจากหน้าระบบ? ข้อมูลจะยังอยู่ในฐานข้อมูลและมีไฟล์สำรองให้ดาวน์โหลด')) {
                 try {
-                    await db.collection('classes').doc(id).delete();
+                    if(!(await backupBeforeDanger('เก็บห้องเรียน ' + id))) return;
+                    await db.collection('classes').doc(id).set({
+                        archivedAt: new Date().toISOString(),
+                        archivedReason: 'soft-delete-from-teacher-ui'
+                    }, { merge: true });
                     await loadClasses();
                     renderClassSettingsList();
                 } catch(e) { console.error(e); }
@@ -2218,7 +2502,7 @@
             MOCK_STUDENTS = classData.students; // keep synced
 
             classData.students.forEach((s, idx) => {
-                const isTransferred = s.status === 'transferred';
+                const isTransferred = isInactiveStudent(s);
                 html += `
                 <tr class="border-b border-slate-100 last:border-0 hover:bg-slate-50 ${isTransferred ? 'opacity-50' : ''}">
                     <td class="p-3 text-center font-number text-heart-brown/80">${s.number}</td>
@@ -2228,8 +2512,8 @@
                         ${isTransferred ? '<span class="bg-slate-200 text-heart-brown/80 px-2 py-1 rounded text-xs">ย้ายออก</span>' : '<span class="bg-green-100 text-green-600 px-2 py-1 rounded text-xs">กำลังศึกษา</span>'}
                     </td>
                     <td class="p-3 text-center flex justify-center gap-2">
-                        <button onclick="openAddStudentModal(${s.id})" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 hover:bg-blue-100"><i class="fa-solid fa-pen"></i></button>
-                        <button onclick="deleteStudent(${s.id})" class="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-100"><i class="fa-solid fa-trash"></i></button>
+                        <button onclick="openAddStudentModal(${s.id})" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 hover:bg-blue-100" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
+                        ${isTransferred ? `<button onclick="restoreStudent(${s.id})" class="w-8 h-8 rounded-lg bg-green-50 text-green-600 hover:bg-green-100" title="กู้คืน"><i class="fa-solid fa-rotate-left"></i></button>` : `<button onclick="deleteStudent(${s.id})" class="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-100" title="เก็บออกจากรายชื่อ"><i class="fa-solid fa-box-archive"></i></button>`}
                     </td>
                 </tr>
                 `;
@@ -2285,6 +2569,11 @@
                 s.stdCode = sCode;
                 s.name = sName;
                 s.status = sStatus;
+                if(sStatus !== 'transferred') {
+                    delete s.deletedAt;
+                    delete s.deletedReason;
+                    delete s.previousStatus;
+                }
             } else {
                 let studentGender = 'M';
                 if(sName.includes('ด.ญ.') || sName.includes('เด็กหญิง') || sName.includes('นางสาว') || sName.includes('นาง')) {
@@ -2304,8 +2593,10 @@
                 });
             }
             
+            const savedStudent = classData.students.find(x => editId ? String(x.id) === String(editId) : String(x.id) === String(classData.students[classData.students.length - 1].id));
+            
             try {
-                await db.collection('classes').doc(currentClassId).update({ students: classData.students });
+                await upsertStudentsSafely([savedStudent]);
                 closeStudentModal();
                 renderStudentSettingsList();
                 showModal('สำเร็จ', 'บันทึกข้อมูลนักเรียนเรียบร้อย', '<i class="fa-solid fa-check"></i>', 'text-green-500');
@@ -2313,12 +2604,37 @@
         }
 
         async function deleteStudent(id) {
-            if(!confirm('ยืนยันลบนักเรียนคนนี้ออกจากห้องเรียน?')) return;
+            if(!confirm('ยืนยันเก็บนักเรียนคนนี้ออกจากรายชื่อใช้งาน? ข้อมูลคะแนนและเช็กชื่อเดิมจะยังถูกเก็บไว้')) return;
             const classData = allClasses.find(c => c.id === currentClassId);
-            classData.students = classData.students.filter(x => x.id !== id);
+            const student = classData.students.find(x => String(x.id) === String(id));
+            if(!student) return;
             try {
-                await db.collection('classes').doc(currentClassId).update({ students: classData.students });
+                if(!(await backupBeforeDanger('เก็บนักเรียน ' + (student.name || id)))) return;
+                student.previousStatus = student.status || 'active';
+                student.status = 'transferred';
+                student.deletedAt = new Date().toISOString();
+                student.deletedReason = 'soft-delete-from-teacher-ui';
+                await upsertStudentsSafely([student]);
                 renderStudentSettingsList();
+                renderSpreadsheet();
+                updateDashboardKPIs();
+            } catch(e) { console.error(e); }
+        }
+
+        async function restoreStudent(id) {
+            const classData = allClasses.find(c => c.id === currentClassId);
+            const student = classData && classData.students ? classData.students.find(x => String(x.id) === String(id)) : null;
+            if(!student) return;
+            try {
+                student.status = student.previousStatus && student.previousStatus !== 'transferred' ? student.previousStatus : 'active';
+                delete student.previousStatus;
+                delete student.deletedAt;
+                delete student.deletedReason;
+                await upsertStudentsSafely([student]);
+                renderStudentSettingsList();
+                renderSpreadsheet();
+                updateDashboardKPIs();
+                showModal('กู้คืนแล้ว', 'นำ ' + student.name + ' กลับมาในรายชื่อใช้งานแล้ว', '<i class="fa-solid fa-check"></i>', 'text-green-500');
             } catch(e) { console.error(e); }
         }
 
@@ -2338,6 +2654,7 @@
             const classData = allClasses.find(c => c.id === currentClassId);
             const rows = text.split('\n');
             let added = 0;
+            let importedStudents = [];
             
             rows.forEach(row => {
                 const cols = row.split('\t').map(c => c.trim());
@@ -2354,7 +2671,7 @@
                         } else if(name.includes('ด.ช.') || name.includes('เด็กชาย') || name.includes('นาย')) {
                             studentGender = 'M';
                         }
-                        classData.students.push({
+                        importedStudents.push({
                             id: Date.now() + added,
                             number: num,
                             stdCode: code,
@@ -2369,8 +2686,11 @@
                 }
             });
             
+            classData.students = mergeImportedStudents(classData.students || [], importedStudents);
+            
             try {
-                await db.collection('classes').doc(currentClassId).update({ students: classData.students });
+                if(added > 0 && !(await backupBeforeDanger('นำเข้ารายชื่อแบบวางข้อมูล'))) return;
+                await upsertStudentsSafely(importedStudents);
                 closeImportTSVModal();
                 document.getElementById('tsvPasteArea').value = '';
                 renderStudentSettingsList();
@@ -2465,10 +2785,10 @@
             const tabName = activeTab ? activeTab.innerText.trim() : 'คะแนน';
 
             if(tabId === 'T5') {
-                let maxT1 = gradeColumns.filter(c=>c.cat==='T1').reduce((s,c)=>s+c.max,0);
-                let maxT2 = gradeColumns.filter(c=>c.cat==='T2').reduce((s,c)=>s+c.max,0);
-                let maxT3 = gradeColumns.filter(c=>c.cat==='T3').reduce((s,c)=>s+c.max,0);
-                let maxT4 = gradeColumns.filter(c=>c.cat==='T4').reduce((s,c)=>s+c.max,0);
+                let maxT1 = getActiveGradeColumns().filter(c=>c.cat==='T1').reduce((s,c)=>s+c.max,0);
+                let maxT2 = getActiveGradeColumns().filter(c=>c.cat==='T2').reduce((s,c)=>s+c.max,0);
+                let maxT3 = getActiveGradeColumns().filter(c=>c.cat==='T3').reduce((s,c)=>s+c.max,0);
+                let maxT4 = getActiveGradeColumns().filter(c=>c.cat==='T4').reduce((s,c)=>s+c.max,0);
                 let maxAll = maxT1+maxT2+maxT3+maxT4;
                 headRow.push(`เวลาเรียน (10)`, `ครึ่งแรก (${maxT1})`, `กลางภาค (${maxT2})`, `ครึ่งหลัง (${maxT3})`, `ปลายภาค (${maxT4})`, `รวม (${maxAll})`, `เกรด`);
                 aoa.push(headRow);
@@ -2486,7 +2806,7 @@
                     aoa.push(row);
                 });
             } else {
-                activeCols = gradeColumns.filter(c => c.cat === tabId);
+                activeCols = getActiveGradeColumns().filter(c => c.cat === tabId);
                 let maxSub = activeCols.reduce((s,c)=>s+c.max,0);
                 activeCols.forEach(col => {
                     headRow.push(`${col.name} (${col.max})`);
@@ -2645,20 +2965,22 @@
         window.deleteGradeColumn = async function() {
             let id = document.getElementById('editColId').value;
             if(!id) return;
-            if(!confirm('ยืนยันลบช่องคะแนนนี้? (ข้อมูลคะแนนที่กรอกไว้แล้วของเด็กทุกคนในช่องนี้จะหายไป)')) return;
+            if(!confirm('ยืนยันซ่อนช่องคะแนนนี้? คะแนนเดิมจะยังถูกเก็บไว้ในข้อมูลนักเรียน')) return;
 
-            gradeColumns = gradeColumns.filter(c => c.id !== id);
-            MOCK_STUDENTS.forEach(std => {
-                delete std.scores[id];
-            });
+            const col = gradeColumns.find(c => c.id === id);
+            if(!col) return;
 
             try {
+                if(!(await backupBeforeDanger('ซ่อนช่องคะแนน ' + (col.name || id)))) return;
+                col.status = 'deleted';
+                col.deletedAt = new Date().toISOString();
+                col.deletedReason = 'soft-delete-from-teacher-ui';
                 await db.collection('classes').doc(currentClassId).update({ 
-                    gradeColumns: gradeColumns,
-                    students: MOCK_STUDENTS
+                    gradeColumns: gradeColumns
                 });
                 renderSpreadsheet();
                 closeColModal();
+                updateDashboardKPIs();
             } catch(e) { console.error(e); }
         }
 
@@ -2699,7 +3021,7 @@
             let col = gradeColumns[idx];
             let prevIdx = -1;
             for(let i = idx - 1; i >= 0; i--) {
-                if(gradeColumns[i].cat === col.cat) {
+                if(!isSoftDeleted(gradeColumns[i]) && gradeColumns[i].cat === col.cat) {
                     prevIdx = i;
                     break;
                 }
@@ -2729,7 +3051,7 @@
             let col = gradeColumns[idx];
             let nextIdx = -1;
             for(let i = idx + 1; i < gradeColumns.length; i++) {
-                if(gradeColumns[i].cat === col.cat) {
+                if(!isSoftDeleted(gradeColumns[i]) && gradeColumns[i].cat === col.cat) {
                     nextIdx = i;
                     break;
                 }
