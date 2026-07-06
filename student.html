@@ -184,6 +184,16 @@
             if (e.key === 'Enter') loginStudent();
         });
 
+        function escapeHTML(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[ch]));
+        }
+
         function isInactiveStudent(student) {
             return !!(student && (student.status === 'transferred' || student.deletedAt || student.archivedAt || student.isDeleted || student.status === 'deleted'));
         }
@@ -204,19 +214,6 @@
             return { student: std, classInfo: { id: classDoc.id, ...classData } };
         }
 
-        async function findStudentByScanningClasses(stdCode) {
-            const snapshot = await db.collection('classes').get();
-            let result = null;
-            snapshot.forEach(doc => {
-                if(result) return;
-                const classData = doc.data();
-                if(classData.archivedAt || classData.deletedAt || classData.isDeleted) return;
-                const std = (classData.students || []).find(s => String(s.stdCode) === stdCode && !isInactiveStudent(s));
-                if(std) result = { student: std, classInfo: { id: doc.id, ...classData } };
-            });
-            return result;
-        }
-
         async function loginStudent() {
             const input = document.getElementById('studentIdInput').value.trim();
             const btn = document.getElementById('loginBtn');
@@ -229,7 +226,6 @@
 
             try {
                 let result = await findStudentByIndex(input);
-                if(!result) result = await findStudentByScanningClasses(input);
 
                 if(result) {
                     loggedInStudent = result.student;
@@ -301,8 +297,8 @@
                 gradesHtml += `
                     <tr class="${rowClass} text-sm md:text-base whitespace-nowrap">
                         <td class="p-3 md:p-4 font-bold text-slate-500 text-xs md:text-sm">${catName}</td>
-                        <td class="p-3 md:p-4 font-bold text-heart-brown whitespace-normal min-w-[150px]">${col.name}</td>
-                        <td class="p-3 md:p-4 text-center font-number text-slate-400">${col.max}</td>
+                        <td class="p-3 md:p-4 font-bold text-heart-brown whitespace-normal min-w-[150px]">${escapeHTML(col.name)}</td>
+                        <td class="p-3 md:p-4 text-center font-number text-slate-400">${escapeHTML(col.max)}</td>
                         <td class="p-3 md:p-4 text-center font-number font-bold text-cozy-blue text-base md:text-lg">${valHtml}</td>
                         <td class="p-3 md:p-4 text-center">${statusHtml}</td>
                     </tr>
@@ -383,7 +379,7 @@
                             <td class="p-3 md:p-4 text-center">
                                 <span class="px-3 py-1 ${statusColor} rounded-full text-xs font-bold whitespace-nowrap">${statusLabel}</span>
                             </td>
-                            <td class="p-3 md:p-4 text-slate-500 text-sm">${noteText}</td>
+                            <td class="p-3 md:p-4 text-slate-500 text-sm">${escapeHTML(noteText)}</td>
                         </tr>
                     `;
                 });
