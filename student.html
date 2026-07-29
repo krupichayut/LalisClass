@@ -199,13 +199,19 @@
         }
 
         async function findStudentByIndex(stdCode) {
-            const indexDoc = await db.collection('studentIndex').doc(stdCode).get();
+            let indexDoc;
+            try { indexDoc = await db.collection('studentIndex').doc(stdCode).get({ source: 'server' }); }
+            catch(e) { indexDoc = await db.collection('studentIndex').doc(stdCode).get(); }
             if(!indexDoc.exists) return null;
+            
             const index = indexDoc.data();
             if(!index || !index.classId || index.status === 'transferred' || index.deletedAt) return null;
 
-            const classDoc = await db.collection('classes').doc(index.classId).get();
+            let classDoc;
+            try { classDoc = await db.collection('classes').doc(index.classId).get({ source: 'server' }); }
+            catch(e) { classDoc = await db.collection('classes').doc(index.classId).get(); }
             if(!classDoc.exists) return null;
+            
             const classData = classDoc.data();
             if(classData.archivedAt || classData.deletedAt || classData.isDeleted) return null;
 
