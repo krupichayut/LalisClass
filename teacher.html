@@ -2228,7 +2228,11 @@
                     const uniqueCols = [];
                     
                     classData.gradeColumns.forEach(col => {
-                        let key = col.cat + '|' + col.name;
+                        let normName = col.name;
+                        if (col.cat === 'T2' && (normName.includes('สอบกลางภาค') || normName.includes('กลางภาค'))) {
+                            normName = 'สอบกลางภาค';
+                        }
+                        let key = col.cat + '|' + normName;
                         // Count how many students have scores in this column
                         let scoredCount = 0;
                         studentsToProcess.forEach(s => {

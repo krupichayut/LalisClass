@@ -287,7 +287,13 @@
             const colMap = new Map();
             
             rawColumns.forEach(col => {
-                let key = col.cat + '|' + col.name;
+                // สำหรับหมวดสอบกลางภาค ให้มองหาคำว่า "สอบกลางภาค" เป็นกลุ่มเดียวกันหมด
+                let normName = col.name;
+                if (col.cat === 'T2' && (normName.includes('สอบกลางภาค') || normName.includes('กลางภาค'))) {
+                    normName = 'สอบกลางภาค';
+                }
+                
+                let key = col.cat + '|' + normName;
                 let s = (loggedInStudent.scores || {})[col.id];
                 let isMissing = (s === null || s === undefined || s === '');
                 
