@@ -1763,14 +1763,6 @@
             const weights = getGradeWeights();
             const targetMax = weights[catId] || 0;
             
-            if (catId === 'T3') {
-                let att = getAttendanceScore(student);
-                let assignWeight = targetMax - 10;
-                if (assignWeight < 0) assignWeight = 0;
-                let scaledAssign = rawMax > 0 ? (rawTotal / rawMax) * assignWeight : 0;
-                return Math.round(scaledAssign + att);
-            }
-            
             if (rawMax === 0) return 0;
             return Math.round((rawTotal / rawMax) * targetMax);
         }

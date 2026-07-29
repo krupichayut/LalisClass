@@ -259,14 +259,48 @@
             // Attendance
             let attObj = loggedInStudent.att || { present: 0, total: 0 };
             let attPct = attObj.total === 0 ? 100 : Math.round((attObj.present / attObj.total) * 100);
-            document.getElementById('lblAttPercent').innerText = attPct + '%';
+            
+            let attDeduct = 0;
+            let attRecords = loggedInClass.attendanceRecords || [];
+            attRecords.forEach(r => {
+                if (!r.isHoliday && r.records) {
+                    let status = r.records[loggedInStudent.id];
+                    if (status === 'absent' || status === 'leave' || status === 'late') {
+                        attDeduct += 0.5;
+                    }
+                }
+            });
+            let attScore = Math.max(0, 10 - attDeduct);
+            document.getElementById('lblAttPercent').innerHTML = `${attPct}% <span class="text-sm font-normal text-slate-500 ml-1">(${attScore}/10)</span>`;
 
             // Grades Processing
             let gradesHtml = '';
-            let totalScore = 0;
             let missingCount = 0;
             const columns = loggedInClass.gradeColumns || [];
             const scores = loggedInStudent.scores || {};
+            const weights = loggedInClass.gradeWeights || { T1: 30, T2: 20, T3: 30, T4: 20 };
+
+            function getCatTotal(catId) {
+                let cols = columns.filter(c => c.cat === catId);
+                let rawT = 0, rawM = 0;
+                cols.forEach(c => {
+                    rawT += scores[c.id] || 0;
+                    rawM += c.max;
+                });
+                return { rawT, rawM };
+            }
+            
+            let t1Info = getCatTotal('T1');
+            let t2Info = getCatTotal('T2');
+            let t3Info = getCatTotal('T3');
+            let t4Info = getCatTotal('T4');
+            
+            let t1 = t1Info.rawM > 0 ? Math.round((t1Info.rawT / t1Info.rawM) * weights.T1) : 0;
+            let t2 = t2Info.rawM > 0 ? Math.round((t2Info.rawT / t2Info.rawM) * weights.T2) : 0;
+            let t3 = t3Info.rawM > 0 ? Math.round((t3Info.rawT / t3Info.rawM) * weights.T3) : 0;
+            let t4 = t4Info.rawM > 0 ? Math.round((t4Info.rawT / t4Info.rawM) * weights.T4) : 0;
+            
+            let totalScore = t1 + t2 + t3 + t4;
 
             columns.forEach(col => {
                 let s = scores[col.id];
@@ -277,10 +311,10 @@
 
                 // Map category code to name
                 let catName = 'งานทั่วไป';
-                if(col.cat === 'T1') catName = 'ครึ่งเทอมแรก';
-                if(col.cat === 'T2') catName = 'สอบกลางภาค';
-                if(col.cat === 'T3') catName = 'ครึ่งเทอมหลัง';
-                if(col.cat === 'T4') catName = 'สอบปลายภาค';
+                if(col.cat === 'T1') catName = `ครึ่งเทอมแรก (${weights.T1})`;
+                if(col.cat === 'T2') catName = `สอบกลางภาค (${weights.T2})`;
+                if(col.cat === 'T3') catName = `ครึ่งเทอมหลัง (${weights.T3})`;
+                if(col.cat === 'T4') catName = `สอบปลายภาค (${weights.T4})`;
 
                 if(isMissing) {
                     missingCount++;
@@ -289,7 +323,6 @@
                     rowClass = 'missing-row hover:bg-red-100 transition-colors';
                 } else {
                     let num = parseFloat(s);
-                    totalScore += num;
                     statusHtml = '<span class="px-3 py-1 bg-green-100 text-green-600 rounded-full text-xs font-bold"><i class="fa-solid fa-check mr-1"></i>ส่งแล้ว</span>';
                     valHtml = num;
                 }
