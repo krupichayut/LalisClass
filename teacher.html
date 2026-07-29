@@ -2042,15 +2042,21 @@
             let html = '';
             let missingCount = 0;
 
+            const classData = allClasses.find(c => c.id === currentClassId);
+            const allCols = (classData && classData.gradeColumns) ? classData.gradeColumns : [];
+
             MOCK_STUDENTS.forEach(std => {
                 if(isInactiveStudent(std)) return;
                 if(!std.scores) std.scores = {};
-                getActiveGradeColumns().forEach(col => {
+                allCols.forEach(col => {
                     if(std.scores[col.id] === null || std.scores[col.id] === undefined) {
                         missingCount++;
                         // Determine category name
-                        let catName = "ครึ่งเทอมแรก";
+                        let catName = "งานทั่วไป";
+                        if(col.cat === "T1") catName = "ครึ่งเทอมแรก";
+                        if(col.cat === "T2") catName = "สอบกลางภาค";
                         if(col.cat === "T3") catName = "ครึ่งเทอมหลัง";
+                        if(col.cat === "T4") catName = "สอบปลายภาค";
 
                         html += `
                         <div class="bg-white rounded-3xl p-6 shadow-cozy border-t-8 border-cozy-pink relative hover:-translate-y-1 transition-transform">
@@ -2210,9 +2216,53 @@
             const dashGender = document.getElementById('dashGenderSplit');
             if(dashGender) dashGender.innerHTML = `<span><i class="fa-solid fa-person text-blue-400"></i> ชาย ${maleCount}</span> <span><i class="fa-solid fa-person-dress text-pink-400"></i> หญิง ${femaleCount}</span>`;
 
-            // Calculate Missing
             let missingCount = 0;
             let expectedCount = 0;
+            
+            // --- Auto-Cleanup Ghost Duplicates ---
+            if (currentClassId) {
+                const classData = allClasses.find(c => c.id === currentClassId);
+                if (classData && classData.gradeColumns && classData.gradeColumns.length > 0) {
+                    let hasDeletedGhosts = false;
+                    const colMap = new Map();
+                    const uniqueCols = [];
+                    
+                    classData.gradeColumns.forEach(col => {
+                        let key = col.cat + '|' + col.name;
+                        // Count how many students have scores in this column
+                        let scoredCount = 0;
+                        studentsToProcess.forEach(s => {
+                            if (s.scores && s.scores[col.id] !== null && s.scores[col.id] !== undefined) scoredCount++;
+                        });
+                        
+                        if (!colMap.has(key)) {
+                            colMap.set(key, { col: col, scoredCount: scoredCount });
+                            uniqueCols.push(col);
+                        } else {
+                            let existing = colMap.get(key);
+                            if (scoredCount > existing.scoredCount) {
+                                // Swap
+                                let idx = uniqueCols.findIndex(c => c.id === existing.col.id);
+                                if(idx !== -1) uniqueCols[idx] = col;
+                                colMap.set(key, { col: col, scoredCount: scoredCount });
+                                hasDeletedGhosts = true;
+                            } else {
+                                hasDeletedGhosts = true;
+                            }
+                        }
+                    });
+                    
+                    if (hasDeletedGhosts) {
+                        classData.gradeColumns = uniqueCols;
+                        // Quietly save to database to permanently remove ghosts
+                        db.collection('classes').doc(currentClassId).update({ gradeColumns: uniqueCols }).catch(e => console.error(e));
+                        // Update gradeColsToProcess to prevent counting missing work for ghosts
+                        gradeColsToProcess = uniqueCols;
+                        renderSpreadsheet(); // refresh UI
+                    }
+                }
+            }
+
             if (!currentClassId) {
                 allClasses.forEach(c => {
                     const cols = c.gradeColumns || [];
