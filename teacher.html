@@ -1805,8 +1805,7 @@
             // Generate Headers
             let headHtml = `<tr>
                 <th class="p-3 w-16 text-center border-r-2 border-dashed border-heart-border/30">เลขที่</th>
-                <th class="p-3 border-r-2 border-dashed border-heart-border/30">ชื่อ - นามสกุล</th>
-                <th class="p-3 text-center border-r-2 border-dashed border-heart-border/30 bg-purple-100/50 min-w-[80px]" title="หัก 0.5 คะแนนเมื่อขาด/ลา/สาย">เวลาเรียน<br><span class="text-xs font-normal text-slate-500">(10)</span></th>`;
+                <th class="p-3 border-r-2 border-dashed border-heart-border/30 min-w-[150px]">ชื่อ - นามสกุล</th>`;
             
             let activeCols = [];
             if(currentGradeTab === 'T5') {
@@ -1858,12 +1857,11 @@
             MOCK_STUDENTS.forEach((std, rIdx) => {
                 if(!std.scores) std.scores = {};
                 const isTransferred = isInactiveStudent(std);
-                let t0 = getAttendanceScore(std);
+                let t0 = getAttendanceScore(std); // kept for Excel or other uses, but not rendered in UI
 
                 bodyHtml += `<tr class="hover:bg-slate-50 transition-colors ${isTransferred ? 'opacity-50' : ''}">
                     <td class="p-3 text-center border-r-2 border-dashed border-heart-border/20 font-number">${std.number}</td>
-                    <td class="p-3 border-r-2 border-dashed border-heart-border/20 font-medium text-heart-brown whitespace-nowrap">${escapeHTML(std.name)} ${isTransferred ? '<span class="ml-2 text-xs bg-slate-200 text-heart-brown/80 px-2 py-0.5 rounded">ย้ายออก</span>' : ''}</td>
-                    <td class="p-3 text-center border-r-2 border-dashed border-heart-border/20 font-number font-bold text-purple-600 bg-purple-50/30">${t0}</td>`;
+                    <td class="p-3 border-r-2 border-dashed border-heart-border/20 font-medium text-heart-brown whitespace-nowrap">${escapeHTML(std.name)} ${isTransferred ? '<span class="ml-2 text-xs bg-slate-200 text-heart-brown/80 px-2 py-0.5 rounded">ย้ายออก</span>' : ''}</td>`;
                 
                 if(currentGradeTab === 'T5') {
                     // Summary logic
