@@ -261,8 +261,8 @@
             let attPct = attObj.total === 0 ? 100 : Math.round((attObj.present / attObj.total) * 100);
             
             let attDeduct = 0;
-            let attRecords = loggedInClass.attendanceRecords || [];
-            attRecords.forEach(r => {
+            let classAttRecords = loggedInClass.attendanceRecords || [];
+            classAttRecords.forEach(r => {
                 if (!r.isHoliday && r.records) {
                     let status = r.records[loggedInStudent.id];
                     if (status === 'absent' || status === 'leave' || status === 'late') {
