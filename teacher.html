@@ -2920,7 +2920,10 @@
             setTimeout(() => m.classList.add('hidden'), 300);
         }
 
+        let isSavingCol = false;
         async function saveColData() {
+            if (isSavingCol) return;
+            
             let id = document.getElementById('editColId').value;
             let name = document.getElementById('colName').value.trim();
             let max = parseInt(document.getElementById('colMax').value);
@@ -2928,6 +2931,7 @@
 
             if(!name || isNaN(max) || max <= 0) return alert('กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง');
 
+            isSavingCol = true;
             if(id) {
                 // Edit
                 let col = gradeColumns.find(c => c.id === id);
@@ -2947,6 +2951,7 @@
                 renderSpreadsheet();
                 closeColModal();
             } catch(e) { console.error(e); }
+            isSavingCol = false;
         }
 
         window.deleteGradeColumn = async function() {
