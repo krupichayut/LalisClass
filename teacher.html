@@ -2220,8 +2220,8 @@
             let expectedCount = 0;
             
             // --- Auto-Cleanup Ghost Duplicates ---
-            if (currentClassId) {
-                const classData = allClasses.find(c => c.id === currentClassId);
+            let anyClassUpdated = false;
+            allClasses.forEach(classData => {
                 if (classData && classData.gradeColumns && classData.gradeColumns.length > 0) {
                     let hasDeletedGhosts = false;
                     const colMap = new Map();
@@ -2235,7 +2235,7 @@
                         let key = col.cat + '|' + normName;
                         // Count how many students have scores in this column
                         let scoredCount = 0;
-                        studentsToProcess.forEach(s => {
+                        (classData.students || []).forEach(s => {
                             if (s.scores && s.scores[col.id] !== null && s.scores[col.id] !== undefined) scoredCount++;
                         });
                         
@@ -2259,12 +2259,18 @@
                     if (hasDeletedGhosts) {
                         classData.gradeColumns = uniqueCols;
                         // Quietly save to database to permanently remove ghosts
-                        db.collection('classes').doc(currentClassId).update({ gradeColumns: uniqueCols }).catch(e => console.error(e));
-                        // Update gradeColsToProcess to prevent counting missing work for ghosts
-                        gradeColsToProcess = uniqueCols;
-                        renderSpreadsheet(); // refresh UI
+                        db.collection('classes').doc(classData.id).update({ gradeColumns: uniqueCols }).catch(e => console.error(e));
+                        
+                        if (currentClassId === classData.id) {
+                            gradeColsToProcess = uniqueCols;
+                            anyClassUpdated = true;
+                        }
                     }
                 }
+            });
+            
+            if (anyClassUpdated) {
+                renderSpreadsheet(); // refresh UI if current class was affected
             }
 
             if (!currentClassId) {
