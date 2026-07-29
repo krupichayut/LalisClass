@@ -282,7 +282,32 @@
             // Grades Processing
             let gradesHtml = '';
             let missingCount = 0;
-            const columns = loggedInClass.gradeColumns || [];
+            let rawColumns = loggedInClass.gradeColumns || [];
+            const uniqueCols = [];
+            const colMap = new Map();
+            
+            rawColumns.forEach(col => {
+                let key = col.cat + '|' + col.name;
+                let s = (loggedInStudent.scores || {})[col.id];
+                let isMissing = (s === null || s === undefined || s === '');
+                
+                if (!colMap.has(key)) {
+                    colMap.set(key, col);
+                    uniqueCols.push(col);
+                } else {
+                    // หากเจอช่องซ้ำกัน ให้เลือกช่องที่มีคะแนนกรอกไว้แล้ว
+                    let existingCol = colMap.get(key);
+                    let existingS = (loggedInStudent.scores || {})[existingCol.id];
+                    let existingMissing = (existingS === null || existingS === undefined || existingS === '');
+                    if (existingMissing && !isMissing) {
+                        let idx = uniqueCols.indexOf(existingCol);
+                        if (idx !== -1) uniqueCols[idx] = col;
+                        colMap.set(key, col);
+                    }
+                }
+            });
+
+            const columns = uniqueCols;
             const scores = loggedInStudent.scores || {};
             const weights = loggedInClass.gradeWeights || { T1: 30, T2: 20, T3: 30, T4: 20 };
 
