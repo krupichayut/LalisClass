@@ -287,6 +287,9 @@
             const colMap = new Map();
             
             rawColumns.forEach(col => {
+                // Ignore soft-deleted columns completely!
+                if (col.status === 'deleted' || col.deletedAt || col.isDeleted) return;
+
                 // สำหรับหมวดสอบกลางภาค ให้มองหาคำว่า "สอบกลางภาค" เป็นกลุ่มเดียวกันหมด
                 let normName = col.name;
                 if (col.cat === 'T2' && (normName.includes('สอบกลางภาค') || normName.includes('กลางภาค'))) {
