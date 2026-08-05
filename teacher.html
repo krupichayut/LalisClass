@@ -1053,19 +1053,30 @@
                     
                     try {
                         if(!(await backupBeforeDanger('นำเข้า CSV รายชื่อนักเรียน'))) return;
-                        const batch = db.batch();
-                        for (const [className, students] of Object.entries(studentsByClass)) {
-                            const classRef = db.collection('classes').doc(className.replace(/\//g, '_'));
-                            const existingDoc = await classRef.get();
-                            const existingData = existingDoc.exists ? existingDoc.data() : {};
-                            const mergedStudents = mergeImportedStudents(existingData.students || [], students);
-                            batch.set(classRef, {
-                                name: className,
-                                students: mergedStudents,
-                                updatedAt: new Date().toISOString()
-                            }, { merge: true });
-                        }
-                        await batch.commit();
+                        await db.runTransaction(async (transaction) => {
+                            // First, perform all reads
+                            const classRefsAndData = [];
+                            for (const [className, students] of Object.entries(studentsByClass)) {
+                                const classRef = db.collection('classes').doc(className.replace(/\//g, '_'));
+                                const existingDoc = await transaction.get(classRef);
+                                classRefsAndData.push({
+                                    className, 
+                                    classRef, 
+                                    students,
+                                    existingData: existingDoc.exists ? existingDoc.data() : {}
+                                });
+                            }
+                            
+                            // Then perform all writes
+                            for (const item of classRefsAndData) {
+                                const mergedStudents = mergeImportedStudents(item.existingData.students || [], item.students);
+                                transaction.set(item.classRef, {
+                                    name: item.className,
+                                    students: mergedStudents,
+                                    updatedAt: new Date().toISOString()
+                                }, { merge: true });
+                            }
+                        });
                         showModal("สำเร็จ!", "นำเข้าข้อมูลรายชื่อเรียบร้อยแล้ว", "✨", "text-green-500");
                         loadClasses();
                     } catch (e) {
@@ -2043,7 +2054,7 @@
             let missingCount = 0;
 
             const classData = allClasses.find(c => c.id === currentClassId);
-            const allCols = (classData && classData.gradeColumns) ? classData.gradeColumns : [];
+            const allCols = getActiveGradeColumns((classData && classData.gradeColumns) ? classData.gradeColumns : []);
 
             MOCK_STUDENTS.forEach(std => {
                 if(isInactiveStudent(std)) return;
@@ -2228,6 +2239,12 @@
                     const uniqueCols = [];
                     
                     classData.gradeColumns.forEach(col => {
+                        // C3 FIX: Do not include soft-deleted columns in the cleanup process
+                        if (isSoftDeleted(col)) {
+                            uniqueCols.push(col); // keep it in the array, but don't deduplicate it
+                            return; 
+                        }
+
                         let normName = col.name;
                         if (col.cat === 'T2' && (normName.includes('สอบกลางภาค') || normName.includes('กลางภาค'))) {
                             normName = 'สอบกลางภาค';
@@ -2244,14 +2261,20 @@
                             uniqueCols.push(col);
                         } else {
                             let existing = colMap.get(key);
-                            if (scoredCount > existing.scoredCount) {
-                                // Swap
-                                let idx = uniqueCols.findIndex(c => c.id === existing.col.id);
-                                if(idx !== -1) uniqueCols[idx] = col;
-                                colMap.set(key, { col: col, scoredCount: scoredCount });
+                            
+                            // C2 FIX: Only merge if they are truly different columns AND one of them is completely empty
+                            if (existing.col.id !== col.id && (scoredCount === 0 || existing.scoredCount === 0)) {
+                                if (scoredCount > existing.scoredCount) {
+                                    // Swap
+                                    let idx = uniqueCols.findIndex(c => c.id === existing.col.id);
+                                    if(idx !== -1) uniqueCols[idx] = col;
+                                    colMap.set(key, { col: col, scoredCount: scoredCount });
+                                }
                                 hasDeletedGhosts = true;
-                            } else {
-                                hasDeletedGhosts = true;
+                            } else if (existing.col.id !== col.id) {
+                                // BOTH have scores! This means the teacher intentionally named two distinct assignments the same.
+                                // Keep both to prevent data loss.
+                                uniqueCols.push(col);
                             }
                         }
                     });
@@ -2787,8 +2810,7 @@
             aoa.push(headRow);
 
             MOCK_STUDENTS.forEach(std => {
-                if(std.status === 'transferred') return;
-                let row = [std.number, std.name];
+                let row = [std.number, std.name + (std.status === 'transferred' ? ' (ย้ายออก)' : '')];
                 let totalP=0, totalL=0, totalLv=0, totalA=0;
                 
                 dates.forEach(d => {

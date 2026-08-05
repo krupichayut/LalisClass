@@ -201,7 +201,10 @@
         async function findStudentByIndex(stdCode) {
             let indexDoc;
             try { indexDoc = await db.collection('studentIndex').doc(stdCode).get({ source: 'server' }); }
-            catch(e) { indexDoc = await db.collection('studentIndex').doc(stdCode).get(); }
+            catch(e) { 
+                try { indexDoc = await db.collection('studentIndex').doc(stdCode).get(); }
+                catch(e2) { throw new Error('ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาตรวจสอบอินเทอร์เน็ต'); }
+            }
             if(!indexDoc.exists) return null;
             
             const index = indexDoc.data();
@@ -209,7 +212,10 @@
 
             let classDoc;
             try { classDoc = await db.collection('classes').doc(index.classId).get({ source: 'server' }); }
-            catch(e) { classDoc = await db.collection('classes').doc(index.classId).get(); }
+            catch(e) { 
+                try { classDoc = await db.collection('classes').doc(index.classId).get(); }
+                catch(e2) { throw new Error('ไม่สามารถเชื่อมต่อฐานข้อมูลห้องเรียนได้ กรุณาตรวจสอบอินเทอร์เน็ต'); }
+            }
             if(!classDoc.exists) return null;
             
             const classData = classDoc.data();
@@ -288,7 +294,7 @@
             
             rawColumns.forEach(col => {
                 // Ignore soft-deleted columns completely!
-                if (col.status === 'deleted' || col.deletedAt || col.isDeleted) return;
+                if (col.status === 'deleted' || col.deletedAt || col.isDeleted || col.archivedAt) return;
 
                 // สำหรับหมวดสอบกลางภาค ให้มองหาคำว่า "สอบกลางภาค" เป็นกลุ่มเดียวกันหมด
                 let normName = col.name;
@@ -304,11 +310,16 @@
                     colMap.set(key, col);
                     uniqueCols.push(col);
                 } else {
-                    // หากเจอช่องซ้ำกัน ให้เลือกช่องที่มีคะแนนกรอกไว้แล้ว
                     let existingCol = colMap.get(key);
                     let existingS = (loggedInStudent.scores || {})[existingCol.id];
                     let existingMissing = (existingS === null || existingS === undefined || existingS === '');
-                    if (existingMissing && !isMissing) {
+                    
+                    if (!existingMissing && !isMissing && existingCol.id !== col.id) {
+                        // BOTH have scores and different IDs! This is a legitimate distinct assignment with the same name.
+                        // Add it separately to avoid data loss.
+                        uniqueCols.push(col);
+                    } else if (existingMissing && !isMissing) {
+                        // Swap out the missing one for the one with a score
                         let idx = uniqueCols.indexOf(existingCol);
                         if (idx !== -1) uniqueCols[idx] = col;
                         colMap.set(key, col);
@@ -324,8 +335,8 @@
                 let cols = columns.filter(c => c.cat === catId);
                 let rawT = 0, rawM = 0;
                 cols.forEach(c => {
-                    rawT += scores[c.id] || 0;
-                    rawM += c.max;
+                    rawT += Number(scores[c.id]) || 0;
+                    rawM += Number(c.max) || 0;
                 });
                 return { rawT, rawM };
             }
@@ -386,7 +397,7 @@
             }
 
             document.getElementById('gradesTableBody').innerHTML = gradesHtml;
-            document.getElementById('lblTotalScore').innerText = Math.round(totalScore);
+            document.getElementById('lblTotalScore').innerText = Math.round(totalScore) || 0;
             document.getElementById('lblMissingCount').innerText = missingCount;
 
             // Simple Grade Calculation (Assumes 100 max total)
