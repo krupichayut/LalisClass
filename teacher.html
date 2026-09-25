@@ -211,6 +211,10 @@
                     <span class="hidden md:block">งานค้าง</span>
                     <span id="missingBadge" class="absolute top-2 right-2 md:right-4 bg-cozy-red text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm" style="display:none;">0</span>
                 </button>
+                <button onclick="switchView('fullscore')" id="nav-fullscore" class="nav-link flex items-center justify-center md:justify-start gap-4 p-3 rounded-2xl text-white/80 hover:bg-white/20 hover:scale-105 transition-all">
+                    <i class="fa-solid fa-table-list text-xl w-6"></i>
+                    <span class="hidden md:block">ตารางคะแนนรวม</span>
+                </button>
                 <div class="h-px bg-heart-brown my-2"></div>
                 <button onclick="switchView('settings')" id="nav-settings" class="nav-link flex items-center justify-center md:justify-start gap-4 p-3 rounded-2xl text-white/80 hover:bg-white/20 hover:scale-105 transition-all">
                     <i class="fa-solid fa-gear text-xl w-6"></i>
@@ -524,7 +528,37 @@
             </div>
         </div>
 
-        <!-- VIEW 5: SYSTEM SETTINGS -->
+        <!-- ========================================== -->
+        <!-- VIEW 5: FULL SCORESHEET                    -->
+        <!-- ========================================== -->
+        <div id="view-fullscore" class="view-section hidden max-w-[95%] mx-auto">
+            <header class="mb-6 flex flex-col xl:flex-row xl:items-end justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-3xl">📊</span>
+                        <h2 class="text-3xl font-bold text-heart-brown">ตารางคะแนนรวมทั้งหมด</h2>
+                    </div>
+                    <p class="text-heart-brown/80 mt-1">สรุปคะแนนครบทุกชิ้นงาน ทุกหมวด พร้อมสถานะผ่าน/ไม่ผ่าน (อ่านอย่างเดียว)</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="exportFullScoreToExcel()" class="pill-button bg-green-50 text-green-600 border-2 border-white px-4 py-2 rounded-2xl font-bold shadow-sm flex items-center gap-2 hover:bg-green-100 whitespace-nowrap">
+                        <i class="fa-solid fa-file-excel"></i> ส่งออก Excel (คะแนนรวม)
+                    </button>
+                </div>
+            </header>
+
+            <div class="bg-white rounded-3xl shadow-cozy border border-cozy-purple/20 overflow-hidden">
+                <div class="overflow-x-auto" style="max-height: calc(100vh - 200px);">
+                    <table class="w-full text-left border-collapse" id="fullscoreTable">
+                        <thead id="fullscoreHead" class="bg-[#faf5ff] text-heart-brown font-bold text-sm sticky top-0 z-10 shadow-sm"></thead>
+                        <tbody id="fullscoreBody" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VIEW 6: SYSTEM SETTINGS -->
         <!-- ========================================== -->
         <div id="view-settings" class="view-section hidden max-w-6xl mx-auto">
             <header class="mb-8 flex items-center justify-between">
@@ -1277,6 +1311,7 @@
                     renderMonthlyReport();
                 }
                 if(viewName === 'grading') renderSpreadsheet();
+                if(viewName === 'fullscore') renderFullScore();
                 if(viewName === 'missing') renderMissing();
                 if(viewName === 'dashboard') updateDashboardKPIs(); // Charts init on load
                 if(viewName === 'settings') {
@@ -2102,6 +2137,154 @@
                 emptyState.classList.add('hidden');
             }
         }
+
+        function renderFullScore() {
+            const thead = document.getElementById('fullscoreHead');
+            const tbody = document.getElementById('fullscoreBody');
+            if(!thead || !tbody) return;
+
+            const classData = allClasses.find(c => c.id === currentClassId);
+            const allCols = getActiveGradeColumns((classData && classData.gradeColumns) ? classData.gradeColumns : []);
+            
+            const t1Cols = allCols.filter(c => c.cat === 'T1');
+            const t2Cols = allCols.filter(c => c.cat === 'T2');
+            const t3Cols = allCols.filter(c => c.cat === 'T3');
+            const t4Cols = allCols.filter(c => c.cat === 'T4');
+
+            // --- HEADER ---
+            let headHtml = `<tr>
+                <th class="p-3 text-center border-r-2 border-dashed border-heart-border/30 bg-[#faf5ff] sticky left-0 z-20 min-w-[60px]">เลขที่</th>
+                <th class="p-3 text-left border-r-2 border-dashed border-heart-border/30 bg-[#faf5ff] sticky left-[60px] z-20 min-w-[200px]">ชื่อ-สกุล</th>`;
+            
+            // T1
+            t1Cols.forEach(col => { headHtml += `<th class="p-2 text-center bg-purple-50 border-r border-dashed border-purple-200"><div class="text-xs truncate w-16" title="${escapeHTML(col.name)}">${escapeHTML(col.name)}</div><div class="text-[10px] text-slate-400">(${col.max})</div></th>`; });
+            
+            // T2
+            t2Cols.forEach(col => { headHtml += `<th class="p-2 text-center bg-blue-50 border-r border-dashed border-blue-200"><div class="text-xs truncate w-16" title="${escapeHTML(col.name)}">${escapeHTML(col.name)}</div><div class="text-[10px] text-slate-400">(${col.max})</div></th>`; });
+            headHtml += `<th class="p-2 text-center bg-blue-100 border-r-2 border-blue-300">สถานะ<br>กลางภาค</th>`;
+            
+            // T3
+            t3Cols.forEach(col => { headHtml += `<th class="p-2 text-center bg-pink-50 border-r border-dashed border-pink-200"><div class="text-xs truncate w-16" title="${escapeHTML(col.name)}">${escapeHTML(col.name)}</div><div class="text-[10px] text-slate-400">(${col.max})</div></th>`; });
+            
+            // T4
+            t4Cols.forEach(col => { headHtml += `<th class="p-2 text-center bg-orange-50 border-r border-dashed border-orange-200"><div class="text-xs truncate w-16" title="${escapeHTML(col.name)}">${escapeHTML(col.name)}</div><div class="text-[10px] text-slate-400">(${col.max})</div></th>`; });
+            headHtml += `<th class="p-2 text-center bg-orange-100 border-r-2 border-orange-300">สถานะ<br>ปลายภาค</th>`;
+            
+            // Total
+            headHtml += `<th class="p-3 text-center bg-heart-cream border-r-2 border-heart-border/30 text-purple-700">รวม<br>(100)</th>`;
+            headHtml += `<th class="p-3 text-center bg-heart-cream text-purple-700">เกรด</th></tr>`;
+            
+            thead.innerHTML = headHtml;
+
+            // --- BODY ---
+            let bodyHtml = '';
+            if (MOCK_STUDENTS.length === 0) {
+                bodyHtml = `<tr><td colspan="100%" class="p-8 text-center text-slate-400">ยังไม่มีรายชื่อนักเรียน</td></tr>`;
+            }
+
+            MOCK_STUDENTS.forEach(std => {
+                if(!std.scores) std.scores = {};
+                const isTransferred = isInactiveStudent(std);
+                
+                bodyHtml += `<tr class="hover:bg-slate-50 transition-colors ${isTransferred ? 'opacity-50' : ''}">
+                    <td class="p-3 text-center border-r-2 border-dashed border-heart-border/20 font-number bg-white sticky left-0 z-10">${std.number}</td>
+                    <td class="p-3 border-r-2 border-dashed border-heart-border/20 font-medium text-heart-brown whitespace-nowrap bg-white sticky left-[60px] z-10">${escapeHTML(std.name)} ${isTransferred ? '<span class="text-xs bg-slate-200 px-1 rounded ml-2">ย้ายออก</span>' : ''}</td>`;
+                
+                // T1
+                t1Cols.forEach(col => { bodyHtml += `<td class="p-2 text-center border-r border-dashed border-purple-200 font-number text-slate-600 bg-purple-50/30">${std.scores[col.id] !== undefined && std.scores[col.id] !== null ? std.scores[col.id] : '-'}</td>`; });
+                
+                // T2
+                let t2Raw = 0;
+                t2Cols.forEach(col => { 
+                    let val = std.scores[col.id];
+                    if(val !== undefined && val !== null) t2Raw += Number(val);
+                    bodyHtml += `<td class="p-2 text-center border-r border-dashed border-blue-200 font-number text-slate-600 bg-blue-50/30">${val !== undefined && val !== null ? val : '-'}</td>`; 
+                });
+                let t2Pass = t2Raw >= 7;
+                bodyHtml += `<td class="p-2 text-center border-r-2 border-blue-300 font-bold text-xs ${t2Pass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${t2Pass ? '✅ ผ่าน' : '❌ ไม่ผ่าน'}</td>`;
+
+                // T3
+                t3Cols.forEach(col => { bodyHtml += `<td class="p-2 text-center border-r border-dashed border-pink-200 font-number text-slate-600 bg-pink-50/30">${std.scores[col.id] !== undefined && std.scores[col.id] !== null ? std.scores[col.id] : '-'}</td>`; });
+
+                // T4
+                let t4Raw = 0;
+                t4Cols.forEach(col => { 
+                    let val = std.scores[col.id];
+                    if(val !== undefined && val !== null) t4Raw += Number(val);
+                    bodyHtml += `<td class="p-2 text-center border-r border-dashed border-orange-200 font-number text-slate-600 bg-orange-50/30">${val !== undefined && val !== null ? val : '-'}</td>`; 
+                });
+                let t4Pass = t4Raw >= 7;
+                bodyHtml += `<td class="p-2 text-center border-r-2 border-orange-300 font-bold text-xs ${t4Pass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${t4Pass ? '✅ ผ่าน' : '❌ ไม่ผ่าน'}</td>`;
+
+                // Totals
+                let total = getFullScore(std);
+                let grade = getGradeString(total);
+                let gradeColor = grade === "0" || grade === "1.0" || grade === "1.5" ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700";
+
+                bodyHtml += `<td class="p-3 text-center border-r-2 border-heart-border/30 font-number font-bold text-purple-700 bg-heart-cream/30">${total}</td>`;
+                bodyHtml += `<td class="p-3 text-center bg-white"><span class="px-3 py-1 rounded-full font-bold font-number ${gradeColor}">${grade}</span></td></tr>`;
+            });
+
+            tbody.innerHTML = bodyHtml;
+        }
+
+        window.exportFullScoreToExcel = function() {
+            const classData = allClasses.find(c => c.id === currentClassId);
+            if(!classData) return alert('กรุณาเลือกห้องเรียน');
+            const allCols = getActiveGradeColumns((classData && classData.gradeColumns) ? classData.gradeColumns : []);
+            
+            const t1Cols = allCols.filter(c => c.cat === 'T1');
+            const t2Cols = allCols.filter(c => c.cat === 'T2');
+            const t3Cols = allCols.filter(c => c.cat === 'T3');
+            const t4Cols = allCols.filter(c => c.cat === 'T4');
+
+            let aoa = [];
+            let headRow = ['เลขที่', 'ชื่อ-สกุล'];
+            
+            t1Cols.forEach(c => headRow.push(`T1: ${c.name} (${c.max})`));
+            t2Cols.forEach(c => headRow.push(`T2: ${c.name} (${c.max})`));
+            headRow.push('สถานะกลางภาค');
+            t3Cols.forEach(c => headRow.push(`T3: ${c.name} (${c.max})`));
+            t4Cols.forEach(c => headRow.push(`T4: ${c.name} (${c.max})`));
+            headRow.push('สถานะปลายภาค', 'รวม (100)', 'เกรด');
+            
+            aoa.push(headRow);
+
+            MOCK_STUDENTS.forEach(std => {
+                let row = [std.number, std.name + (isInactiveStudent(std) ? ' (ย้ายออก)' : '')];
+                if(!std.scores) std.scores = {};
+                
+                t1Cols.forEach(c => row.push(std.scores[c.id] !== undefined && std.scores[c.id] !== null ? std.scores[c.id] : ''));
+                
+                let t2Raw = 0;
+                t2Cols.forEach(c => { 
+                    let val = std.scores[c.id];
+                    if(val !== undefined && val !== null) t2Raw += Number(val);
+                    row.push(val !== undefined && val !== null ? val : '');
+                });
+                row.push(t2Raw >= 7 ? 'ผ่าน' : 'ไม่ผ่าน');
+
+                t3Cols.forEach(c => row.push(std.scores[c.id] !== undefined && std.scores[c.id] !== null ? std.scores[c.id] : ''));
+
+                let t4Raw = 0;
+                t4Cols.forEach(c => { 
+                    let val = std.scores[c.id];
+                    if(val !== undefined && val !== null) t4Raw += Number(val);
+                    row.push(val !== undefined && val !== null ? val : '');
+                });
+                row.push(t4Raw >= 7 ? 'ผ่าน' : 'ไม่ผ่าน');
+
+                let total = getFullScore(std);
+                row.push(total, getGradeString(total));
+
+                aoa.push(row);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(aoa);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Full Scoresheet");
+            XLSX.writeFile(wb, `คะแนนรวมทั้งหมด_${classData.name}.xlsx`);
+        };
 
         window.resolveMissing = async function(stdId, colId) {
             let input = document.getElementById(`resolve-${stdId}-${colId}`);
