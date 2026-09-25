@@ -75,13 +75,9 @@
             <div class="absolute -right-10 -bottom-10 text-9xl text-white opacity-40 transform rotate-12"><i class="fa-solid fa-star"></i></div>
         </div>
 
-        <!-- Warning Missing Work -->
-        <div id="missingAlert" class="bg-red-50 border-2 border-red-200 rounded-2xl p-4 mb-8 hidden items-center gap-4 shadow-sm animate-bounce">
-            <div class="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-triangle-exclamation"></i></div>
-            <div>
-                <h4 class="font-bold text-red-700">แจ้งเตือนด่วน! คุณมีงานค้างส่ง</h4>
-                <p class="text-sm text-red-600">กรุณาตรวจสอบตารางด้านล่างและรีบติดต่อคุณครูเพื่อส่งงานที่ค้างอยู่โดยด่วนครับ</p>
-            </div>
+        <!-- Alerts Container -->
+        <div id="alertsContainer" class="flex flex-col gap-4 mb-8">
+            <!-- JS Generated Alerts will go here -->
         </div>
 
         <!-- Stats Grid -->
@@ -478,14 +474,59 @@
 
             document.getElementById('attendanceTableBody').innerHTML = attHtml;
 
-            // Missing Alert
-            if(missingCount > 0) {
-                document.getElementById('missingAlert').classList.remove('hidden');
-                document.getElementById('missingAlert').classList.add('flex');
-            } else {
-                document.getElementById('missingAlert').classList.add('hidden');
-                document.getElementById('missingAlert').classList.remove('flex');
+            // Dynamic Alerts Generation
+            let alertsHtml = '';
+            
+            // Check T2 Midterm Pass logic (Raw total >= 7)
+            let t2Pass = true;
+            if(t2Info.rawM > 0) {
+                t2Pass = t2Info.rawT >= 7;
             }
+
+            if (!t2Pass) {
+                alertsHtml += `
+                <div class="bg-orange-50 border-2 border-orange-200 rounded-2xl p-4 flex items-center gap-4 shadow-sm animate-bounce">
+                    <div class="w-12 h-12 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-file-pen"></i></div>
+                    <div>
+                        <h4 class="font-bold text-orange-700">แจ้งเตือนสอบแก้ตัว!</h4>
+                        <p class="text-sm text-orange-600">คะแนนสอบกลางภาคของคุณไม่ผ่านเกณฑ์ กรุณาติดต่อคุณครูเพื่อดำเนินการสอบแก้โดยด่วนครับ</p>
+                    </div>
+                </div>`;
+            }
+
+            let hasMissing = missingCount > 0;
+            let scoreBelow50 = totalScore < 50;
+
+            if (scoreBelow50 && hasMissing) {
+                alertsHtml += `
+                <div class="bg-red-50 border-2 border-red-200 rounded-2xl p-4 flex items-center gap-4 shadow-sm animate-bounce">
+                    <div class="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div>
+                        <h4 class="font-bold text-red-700">แจ้งเตือนด่วน! สถานะความเสี่ยง (ติด 0 และ ติด ร)</h4>
+                        <p class="text-sm text-red-600">คะแนนของคุณยังไม่ถึง 50 คะแนน และยังมีงานค้างส่ง กรุณารีบเคลียร์งานที่ค้างอยู่โดยด่วนครับ</p>
+                    </div>
+                </div>`;
+            } else if (scoreBelow50 && !hasMissing) {
+                alertsHtml += `
+                <div class="bg-red-50 border-2 border-red-200 rounded-2xl p-4 flex items-center gap-4 shadow-sm animate-bounce">
+                    <div class="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div>
+                        <h4 class="font-bold text-red-700">แจ้งเตือนด่วน! สถานะความเสี่ยง (ติด 0)</h4>
+                        <p class="text-sm text-red-600">คะแนนรวมของคุณยังไม่ถึง 50 คะแนน กรุณาติดต่อคุณครูเพื่อหาแนวทางแก้ไขนะครับ</p>
+                    </div>
+                </div>`;
+            } else if (!scoreBelow50 && hasMissing) {
+                alertsHtml += `
+                <div class="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 flex items-center gap-4 shadow-sm animate-bounce">
+                    <div class="w-12 h-12 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div>
+                        <h4 class="font-bold text-amber-700">แจ้งเตือน! คุณมีงานค้างส่ง (เสี่ยงติด ร)</h4>
+                        <p class="text-sm text-amber-600">คะแนนรวมของคุณผ่านเกณฑ์แล้ว แต่ยังมีงานค้างส่งอยู่ หากไม่ส่งงานอาจทำให้ติด "ร" นะครับ</p>
+                    </div>
+                </div>`;
+            }
+
+            document.getElementById('alertsContainer').innerHTML = alertsHtml;
         }
 
         function logout() {
