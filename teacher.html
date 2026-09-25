@@ -1828,7 +1828,10 @@
             const targetMax = weights[catId] || 0;
             
             if (rawMax === 0) return 0;
-            return Math.round((rawTotal / rawMax) * targetMax);
+            if (rawMax === targetMax) return rawTotal;
+            
+            let scaled = (rawTotal / rawMax) * targetMax;
+            return Number(scaled.toFixed(1));
         }
 
         function getAttendanceScore(student) {
@@ -2212,7 +2215,12 @@
                 t1Cols.forEach(col => { 
                     let val = std.scores[col.id];
                     let isMissing = (val === undefined || val === null || val === '');
-                    bodyHtml += `<td class="p-2 text-center border-r border-dashed border-purple-200 font-number ${isMissing ? 'bg-red-100 text-red-600 font-bold' : 'text-slate-600 bg-purple-50/30'}">${!isMissing ? val : '-'}</td>`; 
+                    bodyHtml += `<td class="p-0 border-r border-dashed border-purple-200">
+                        <input type="number" step="0.5" min="0" max="${col.max}" 
+                        onchange="updateScoreFromFull('${std.id}', '${col.id}', this.value)"
+                        class="w-full h-full p-2 text-center bg-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-400 font-number ${isMissing ? 'bg-red-100 text-red-600 font-bold' : 'text-slate-600 bg-purple-50/30'}"
+                        value="${!isMissing ? val : ''}" placeholder="-">
+                    </td>`; 
                 });
                 
                 // T2
@@ -2221,16 +2229,26 @@
                     let val = std.scores[col.id];
                     let isMissing = (val === undefined || val === null || val === '');
                     if(!isMissing) t2Raw += Number(val);
-                    bodyHtml += `<td class="p-2 text-center border-r border-dashed border-blue-200 font-number ${isMissing ? 'bg-red-100 text-red-600 font-bold' : 'text-slate-600 bg-blue-50/30'}">${!isMissing ? val : '-'}</td>`; 
+                    bodyHtml += `<td class="p-0 border-r border-dashed border-blue-200">
+                        <input type="number" step="0.5" min="0" max="${col.max}" 
+                        onchange="updateScoreFromFull('${std.id}', '${col.id}', this.value)"
+                        class="w-full h-full p-2 text-center bg-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 font-number ${isMissing ? 'bg-red-100 text-red-600 font-bold' : 'text-slate-600 bg-blue-50/30'}"
+                        value="${!isMissing ? val : ''}" placeholder="-">
+                    </td>`; 
                 });
                 let t2Pass = t2Raw >= 7;
-                bodyHtml += `<td class="p-2 text-center border-r-2 border-blue-300 font-bold text-xs ${t2Pass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${t2Pass ? '✅ ผ่าน' : '❌ ไม่ผ่าน'}</td>`;
+                bodyHtml += `<td id="t2pass-${std.id}" class="p-2 text-center border-r-2 border-blue-300 font-bold text-xs ${t2Pass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${t2Pass ? '✅ ผ่าน' : '❌ ไม่ผ่าน'}</td>`;
 
                 // T3
                 t3Cols.forEach(col => { 
                     let val = std.scores[col.id];
                     let isMissing = (val === undefined || val === null || val === '');
-                    bodyHtml += `<td class="p-2 text-center border-r border-dashed border-pink-200 font-number ${isMissing ? 'bg-red-100 text-red-600 font-bold' : 'text-slate-600 bg-pink-50/30'}">${!isMissing ? val : '-'}</td>`; 
+                    bodyHtml += `<td class="p-0 border-r border-dashed border-pink-200">
+                        <input type="number" step="0.5" min="0" max="${col.max}" 
+                        onchange="updateScoreFromFull('${std.id}', '${col.id}', this.value)"
+                        class="w-full h-full p-2 text-center bg-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-400 font-number ${isMissing ? 'bg-red-100 text-red-600 font-bold' : 'text-slate-600 bg-pink-50/30'}"
+                        value="${!isMissing ? val : ''}" placeholder="-">
+                    </td>`; 
                 });
 
                 // T4
@@ -2239,7 +2257,12 @@
                     let val = std.scores[col.id];
                     let isMissing = (val === undefined || val === null || val === '');
                     if(!isMissing) t4Raw += Number(val);
-                    bodyHtml += `<td class="p-2 text-center border-r border-dashed border-orange-200 font-number ${isMissing ? 'bg-red-100 text-red-600 font-bold' : 'text-slate-600 bg-orange-50/30'}">${!isMissing ? val : '-'}</td>`; 
+                    bodyHtml += `<td class="p-0 border-r border-dashed border-orange-200">
+                        <input type="number" step="0.5" min="0" max="${col.max}" 
+                        onchange="updateScoreFromFull('${std.id}', '${col.id}', this.value)"
+                        class="w-full h-full p-2 text-center bg-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-400 font-number ${isMissing ? 'bg-red-100 text-red-600 font-bold' : 'text-slate-600 bg-orange-50/30'}"
+                        value="${!isMissing ? val : ''}" placeholder="-">
+                    </td>`; 
                 });
 
                 // Totals
@@ -2249,8 +2272,8 @@
                 
                 let finalStatus = std.finalStatus || '';
 
-                bodyHtml += `<td class="p-3 text-center border-r-2 border-heart-border/30 font-number font-bold text-purple-700 bg-heart-cream/30">${total}</td>`;
-                bodyHtml += `<td class="p-3 text-center border-r-2 border-heart-border/20 bg-white"><span class="px-3 py-1 rounded-full font-bold font-number ${gradeColor}">${grade}</span></td>`;
+                bodyHtml += `<td id="total-${std.id}" class="p-3 text-center border-r-2 border-heart-border/30 font-number font-bold text-purple-700 bg-heart-cream/30">${total}</td>`;
+                bodyHtml += `<td class="p-3 text-center border-r-2 border-heart-border/20 bg-white"><span id="grade-${std.id}" class="px-3 py-1 rounded-full font-bold font-number ${gradeColor}">${grade}</span></td>`;
                 
                 bodyHtml += `<td class="p-2 text-center bg-white">
                     <select onchange="updateFinalStatus('${std.id}', this.value)" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-sm font-bold text-heart-brown focus:outline-none focus:border-cozy-blue cursor-pointer hover:bg-slate-100 transition-colors ${finalStatus ? 'border-cozy-blue text-cozy-blue bg-blue-50' : ''}">
@@ -2278,6 +2301,55 @@
                     renderFullScore();
                 } catch(e) { console.error(e); }
             }
+        };
+
+        window.updateScoreFromFull = async function(studentId, colId, value) {
+            try {
+                await saveScoreSafely(studentId, colId, value);
+                
+                // Real-time DOM update (to prevent losing focus on input box)
+                const classData = allClasses.find(c => c.id === currentClassId);
+                const std = classData.students.find(s => String(s.id) === String(studentId));
+                if(std) {
+                    let total = getFullScore(std);
+                    let grade = getGradeString(total);
+                    let gradeColor = grade === "0" || grade === "1.0" || grade === "1.5" ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700";
+                    
+                    const totalEl = document.getElementById(`total-${studentId}`);
+                    const gradeEl = document.getElementById(`grade-${studentId}`);
+                    const t2passEl = document.getElementById(`t2pass-${studentId}`);
+                    
+                    if(totalEl) totalEl.innerText = total;
+                    if(gradeEl) {
+                        gradeEl.innerText = grade;
+                        gradeEl.className = `px-3 py-1 rounded-full font-bold font-number ${gradeColor}`;
+                    }
+                    if(t2passEl) {
+                        let t2Raw = 0;
+                        const t2Cols = (classData.gradeColumns || []).filter(c => c.cat === 'T2');
+                        t2Cols.forEach(c => { 
+                            let v = std.scores[c.id];
+                            if(v !== undefined && v !== null && v !== '') t2Raw += Number(v);
+                        });
+                        let t2Pass = t2Raw >= 7;
+                        t2passEl.innerText = t2Pass ? '✅ ผ่าน' : '❌ ไม่ผ่าน';
+                        t2passEl.className = `p-2 text-center border-r-2 border-blue-300 font-bold text-xs ${t2Pass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
+                    }
+                    
+                    // Update input styling (red background if empty)
+                    const inputEl = document.querySelector(`input[onchange="updateScoreFromFull('${studentId}', '${colId}', this.value)"]`);
+                    if(inputEl) {
+                        if(value === '') {
+                            inputEl.classList.add('bg-red-100', 'text-red-600', 'font-bold');
+                            inputEl.classList.remove('text-slate-600');
+                        } else {
+                            inputEl.classList.remove('bg-red-100', 'text-red-600', 'font-bold');
+                            inputEl.classList.add('text-slate-600');
+                        }
+                    }
+                }
+                updateDashboardKPIs();
+            } catch(e) { console.error(e); }
         };
 
         window.exportFullScoreToExcel = function() {
