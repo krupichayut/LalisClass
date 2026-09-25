@@ -843,7 +843,7 @@
             if(idx >= 0) {
                 allClasses[idx] = { ...allClasses[idx], ...updatedClassData };
                 if(currentClassId === updatedClassData.id) {
-                    MOCK_STUDENTS = allClasses[idx].students || [];
+                    MOCK_STUDENTS = (allClasses[idx].students || []).filter(s => !isInactiveStudent(s));
                     gradeColumns = allClasses[idx].gradeColumns || gradeColumns;
                 }
             }
@@ -1215,7 +1215,7 @@
             currentClassId = select.value;
             const classData = allClasses.find(c => c.id === currentClassId);
             if(classData) {
-                MOCK_STUDENTS = classData.students || [];
+                MOCK_STUDENTS = (classData.students || []).filter(s => !isInactiveStudent(s));
                 MOCK_STUDENTS.forEach(s => { if(!s.scores) s.scores = {}; });
                 gradeColumns = classData.gradeColumns || [];
             } else {
@@ -2844,28 +2844,91 @@
                 return;
             }
             
-            // Sort students by number
-            classData.students.sort((a,b) => a.number - b.number);
-            MOCK_STUDENTS = classData.students; // keep synced
+            // Sync MOCK_STUDENTS to active ONLY so they vanish from ALL views automatically
+            MOCK_STUDENTS = classData.students.filter(s => !isInactiveStudent(s));
 
-            classData.students.forEach((s, idx) => {
-                const isTransferred = isInactiveStudent(s);
-                html += `
-                <tr class="border-b border-slate-100 last:border-0 hover:bg-slate-50 ${isTransferred ? 'opacity-50' : ''}">
-                    <td class="p-3 text-center font-number text-heart-brown/80">${s.number}</td>
+            // Generate Active Students
+            const activeStudents = classData.students.filter(s => !isInactiveStudent(s)).sort((a,b) => a.number - b.number);
+            const inactiveStudents = classData.students.filter(s => isInactiveStudent(s)).sort((a,b) => a.number - b.number);
+
+            const renderRow = (s, isTransferred, index, totalActive) => {
+                let arrows = '';
+                if (!isTransferred) {
+                    arrows = `
+                        <div class="flex flex-col gap-1 items-center justify-center mr-3">
+                            <button onclick='moveStudentUp(${jsString(s.id)})' class="text-slate-300 hover:text-cozy-blue ${index === 0 ? 'invisible' : ''}" title="เลื่อนขึ้น"><i class="fa-solid fa-caret-up"></i></button>
+                            <button onclick='moveStudentDown(${jsString(s.id)})' class="text-slate-300 hover:text-cozy-blue ${index === totalActive - 1 ? 'invisible' : ''}" title="เลื่อนลง"><i class="fa-solid fa-caret-down"></i></button>
+                        </div>
+                    `;
+                }
+                return `
+                <tr class="border-b border-slate-100 last:border-0 hover:bg-slate-50 ${isTransferred ? 'opacity-50 bg-slate-50' : ''}">
+                    <td class="p-3 text-center font-number text-heart-brown/80">
+                        <div class="flex items-center justify-center">
+                            ${arrows}
+                            <span class="text-lg font-bold ${isTransferred ? '' : 'text-cozy-blue'}">${s.number}</span>
+                        </div>
+                    </td>
                     <td class="p-3 font-number">${escapeHTML(s.stdCode)}</td>
                     <td class="p-3 font-medium text-heart-brown">${escapeHTML(s.name)}</td>
                     <td class="p-3 text-center">
                         ${isTransferred ? '<span class="bg-slate-200 text-heart-brown/80 px-2 py-1 rounded text-xs">ย้ายออก</span>' : '<span class="bg-green-100 text-green-600 px-2 py-1 rounded text-xs">กำลังศึกษา</span>'}
                     </td>
-                    <td class="p-3 text-center flex justify-center gap-2">
+                    <td class="p-3 text-center flex justify-center gap-2 items-center h-full pt-4">
                         <button onclick='openAddStudentModal(${jsString(s.id)})' class="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 hover:bg-blue-100" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
                         ${isTransferred ? `<button onclick='restoreStudent(${jsString(s.id)})' class="w-8 h-8 rounded-lg bg-green-50 text-green-600 hover:bg-green-100" title="กู้คืน"><i class="fa-solid fa-rotate-left"></i></button>` : `<button onclick='deleteStudent(${jsString(s.id)})' class="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-100" title="เก็บออกจากรายชื่อ"><i class="fa-solid fa-box-archive"></i></button>`}
                     </td>
                 </tr>
                 `;
-            });
+            };
+
+            activeStudents.forEach((s, i) => html += renderRow(s, false, i, activeStudents.length));
+            if(inactiveStudents.length > 0 && activeStudents.length > 0) {
+                html += `<tr><td colspan="5" class="p-4 bg-slate-100 text-center text-xs font-bold text-slate-400 uppercase tracking-widest border-y border-slate-200 shadow-inner">--- นักเรียนที่ย้ายออก / พ้นสภาพ ---</td></tr>`;
+            }
+            inactiveStudents.forEach((s, i) => html += renderRow(s, true, i, inactiveStudents.length));
+
             document.getElementById('cfg-studentList').innerHTML = html;
+        }
+
+        window.moveStudentUp = async function(id) {
+            const classData = allClasses.find(c => c.id === currentClassId);
+            const activeStudents = classData.students.filter(s => !isInactiveStudent(s)).sort((a,b) => a.number - b.number);
+            const idx = activeStudents.findIndex(s => s.id === id);
+            if (idx <= 0) return;
+            
+            const currentObj = activeStudents[idx];
+            const prevObj = activeStudents[idx - 1];
+            
+            // Swap numbers
+            const temp = currentObj.number;
+            currentObj.number = prevObj.number;
+            prevObj.number = temp;
+            
+            await upsertStudentsSafely([currentObj, prevObj]);
+            renderStudentSettingsList();
+            renderSpreadsheet();
+            if(currentView === 'fullscore') renderFullScore();
+        };
+
+        window.moveStudentDown = async function(id) {
+            const classData = allClasses.find(c => c.id === currentClassId);
+            const activeStudents = classData.students.filter(s => !isInactiveStudent(s)).sort((a,b) => a.number - b.number);
+            const idx = activeStudents.findIndex(s => s.id === id);
+            if (idx === -1 || idx >= activeStudents.length - 1) return;
+            
+            const currentObj = activeStudents[idx];
+            const nextObj = activeStudents[idx + 1];
+            
+            // Swap numbers
+            const temp = currentObj.number;
+            currentObj.number = nextObj.number;
+            nextObj.number = temp;
+            
+            await upsertStudentsSafely([currentObj, nextObj]);
+            renderStudentSettingsList();
+            renderSpreadsheet();
+            if(currentView === 'fullscore') renderFullScore();
         }
 
         function openAddStudentModal(editId = null) {
