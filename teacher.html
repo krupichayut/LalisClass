@@ -1828,10 +1828,10 @@
             const targetMax = weights[catId] || 0;
             
             if (rawMax === 0) return 0;
-            if (rawMax === targetMax) return rawTotal;
             
             let scaled = (rawTotal / rawMax) * targetMax;
-            return Number(scaled.toFixed(1));
+            // ปัดเศษให้ลงท้ายด้วย .0 หรือ .5 เท่านั้น
+            return Math.round(scaled * 2) / 2;
         }
 
         function getAttendanceScore(student) {
