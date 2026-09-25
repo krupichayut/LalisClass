@@ -111,6 +111,7 @@
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body class="flex h-screen overflow-hidden font-sans text-heart-brown selection:bg-heart-pink selection:text-heart-brown">
 
@@ -541,6 +542,9 @@
                     <p class="text-heart-brown/80 mt-1">สรุปคะแนนครบทุกชิ้นงาน ทุกหมวด พร้อมสถานะผ่าน/ไม่ผ่าน (อ่านอย่างเดียว)</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
+                    <button onclick="exportFullScoreToImage()" class="pill-button bg-pink-50 text-pink-600 border-2 border-white px-4 py-2 rounded-2xl font-bold shadow-sm flex items-center gap-2 hover:bg-pink-100 whitespace-nowrap">
+                        <i class="fa-solid fa-image"></i> ส่งออกรูปภาพ
+                    </button>
                     <button onclick="exportFullScoreToExcel()" class="pill-button bg-green-50 text-green-600 border-2 border-white px-4 py-2 rounded-2xl font-bold shadow-sm flex items-center gap-2 hover:bg-green-100 whitespace-nowrap">
                         <i class="fa-solid fa-file-excel"></i> ส่งออก Excel (คะแนนรวม)
                     </button>
@@ -2168,7 +2172,6 @@
             
             // T4
             t4Cols.forEach(col => { headHtml += `<th class="p-2 text-center bg-orange-50 border-r border-dashed border-orange-200"><div class="text-xs truncate w-16" title="${escapeHTML(col.name)}">${escapeHTML(col.name)}</div><div class="text-[10px] text-slate-400">(${col.max})</div></th>`; });
-            headHtml += `<th class="p-2 text-center bg-orange-100 border-r-2 border-orange-300">สถานะ<br>ปลายภาค</th>`;
             
             // Total
             headHtml += `<th class="p-3 text-center bg-heart-cream border-r-2 border-heart-border/30 text-purple-700">รวม<br>(100)</th>`;
@@ -2191,30 +2194,38 @@
                     <td class="p-3 border-r-2 border-dashed border-heart-border/20 font-medium text-heart-brown whitespace-nowrap bg-white sticky left-[60px] z-10">${escapeHTML(std.name)} ${isTransferred ? '<span class="text-xs bg-slate-200 px-1 rounded ml-2">ย้ายออก</span>' : ''}</td>`;
                 
                 // T1
-                t1Cols.forEach(col => { bodyHtml += `<td class="p-2 text-center border-r border-dashed border-purple-200 font-number text-slate-600 bg-purple-50/30">${std.scores[col.id] !== undefined && std.scores[col.id] !== null ? std.scores[col.id] : '-'}</td>`; });
+                t1Cols.forEach(col => { 
+                    let val = std.scores[col.id];
+                    let isMissing = (val === undefined || val === null || val === '');
+                    bodyHtml += `<td class="p-2 text-center border-r border-dashed border-purple-200 font-number ${isMissing ? 'bg-red-100 text-red-600 font-bold' : 'text-slate-600 bg-purple-50/30'}">${!isMissing ? val : '-'}</td>`; 
+                });
                 
                 // T2
                 let t2Raw = 0;
                 t2Cols.forEach(col => { 
                     let val = std.scores[col.id];
-                    if(val !== undefined && val !== null) t2Raw += Number(val);
-                    bodyHtml += `<td class="p-2 text-center border-r border-dashed border-blue-200 font-number text-slate-600 bg-blue-50/30">${val !== undefined && val !== null ? val : '-'}</td>`; 
+                    let isMissing = (val === undefined || val === null || val === '');
+                    if(!isMissing) t2Raw += Number(val);
+                    bodyHtml += `<td class="p-2 text-center border-r border-dashed border-blue-200 font-number ${isMissing ? 'bg-red-100 text-red-600 font-bold' : 'text-slate-600 bg-blue-50/30'}">${!isMissing ? val : '-'}</td>`; 
                 });
                 let t2Pass = t2Raw >= 7;
                 bodyHtml += `<td class="p-2 text-center border-r-2 border-blue-300 font-bold text-xs ${t2Pass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${t2Pass ? '✅ ผ่าน' : '❌ ไม่ผ่าน'}</td>`;
 
                 // T3
-                t3Cols.forEach(col => { bodyHtml += `<td class="p-2 text-center border-r border-dashed border-pink-200 font-number text-slate-600 bg-pink-50/30">${std.scores[col.id] !== undefined && std.scores[col.id] !== null ? std.scores[col.id] : '-'}</td>`; });
+                t3Cols.forEach(col => { 
+                    let val = std.scores[col.id];
+                    let isMissing = (val === undefined || val === null || val === '');
+                    bodyHtml += `<td class="p-2 text-center border-r border-dashed border-pink-200 font-number ${isMissing ? 'bg-red-100 text-red-600 font-bold' : 'text-slate-600 bg-pink-50/30'}">${!isMissing ? val : '-'}</td>`; 
+                });
 
                 // T4
                 let t4Raw = 0;
                 t4Cols.forEach(col => { 
                     let val = std.scores[col.id];
-                    if(val !== undefined && val !== null) t4Raw += Number(val);
-                    bodyHtml += `<td class="p-2 text-center border-r border-dashed border-orange-200 font-number text-slate-600 bg-orange-50/30">${val !== undefined && val !== null ? val : '-'}</td>`; 
+                    let isMissing = (val === undefined || val === null || val === '');
+                    if(!isMissing) t4Raw += Number(val);
+                    bodyHtml += `<td class="p-2 text-center border-r border-dashed border-orange-200 font-number ${isMissing ? 'bg-red-100 text-red-600 font-bold' : 'text-slate-600 bg-orange-50/30'}">${!isMissing ? val : '-'}</td>`; 
                 });
-                let t4Pass = t4Raw >= 7;
-                bodyHtml += `<td class="p-2 text-center border-r-2 border-orange-300 font-bold text-xs ${t4Pass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${t4Pass ? '✅ ผ่าน' : '❌ ไม่ผ่าน'}</td>`;
 
                 // Totals
                 let total = getFullScore(std);
@@ -2246,7 +2257,7 @@
             headRow.push('สถานะกลางภาค');
             t3Cols.forEach(c => headRow.push(`T3: ${c.name} (${c.max})`));
             t4Cols.forEach(c => headRow.push(`T4: ${c.name} (${c.max})`));
-            headRow.push('สถานะปลายภาค', 'รวม (100)', 'เกรด');
+            headRow.push('รวม (100)', 'เกรด');
             
             aoa.push(headRow);
 
@@ -2272,7 +2283,6 @@
                     if(val !== undefined && val !== null) t4Raw += Number(val);
                     row.push(val !== undefined && val !== null ? val : '');
                 });
-                row.push(t4Raw >= 7 ? 'ผ่าน' : 'ไม่ผ่าน');
 
                 let total = getFullScore(std);
                 row.push(total, getGradeString(total));
@@ -2281,9 +2291,94 @@
             });
 
             const ws = XLSX.utils.aoa_to_sheet(aoa);
+            
+            // Format column widths for better readability
+            let colWidths = [
+                { wch: 8 },  // เลขที่
+                { wch: 35 }  // ชื่อ-สกุล
+            ];
+            
+            // Widths for T1, T2, T2Pass, T3, T4, Total, Grade
+            t1Cols.forEach(() => colWidths.push({ wch: 12 }));
+            t2Cols.forEach(() => colWidths.push({ wch: 12 }));
+            colWidths.push({ wch: 12 }); // T2 Pass
+            t3Cols.forEach(() => colWidths.push({ wch: 12 }));
+            t4Cols.forEach(() => colWidths.push({ wch: 12 }));
+            colWidths.push({ wch: 10 }, { wch: 8 }); // Total, Grade
+            
+            ws['!cols'] = colWidths;
+
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Full Scoresheet");
             XLSX.writeFile(wb, `คะแนนรวมทั้งหมด_${classData.name}.xlsx`);
+        };
+
+        window.exportFullScoreToImage = async function() {
+            const classData = allClasses.find(c => c.id === currentClassId);
+            if(!classData) return alert('กรุณาเลือกห้องเรียนก่อนส่งออกภาพ');
+            
+            const originalTable = document.getElementById('fullscoreTable');
+            if(!originalTable) return;
+
+            // แจ้งเตือนผู้ใช้ว่ากำลังประมวลผล (รูปภาพอาจใช้เวลาสร้างแปปนึง)
+            showModal("กำลังสร้างรูปภาพ...", "ระบบกำลังเรนเดอร์ตารางเป็นภาพความละเอียดสูง กรุณารอสักครู่ครับ...", '<i class="fa-solid fa-spinner fa-spin"></i>', "text-cozy-blue");
+
+            // สร้าง container ซ่อนเพื่อจัดเตรียมตารางแบบเต็มจอ
+            const wrapper = document.createElement('div');
+            wrapper.style.position = 'absolute';
+            wrapper.style.left = '-9999px';
+            wrapper.style.top = '0';
+            wrapper.style.background = '#ffffff';
+            wrapper.style.padding = '30px';
+            wrapper.style.borderRadius = '16px';
+            wrapper.style.width = 'max-content'; // บังคับให้ขยายจนสุด ไม่มีการตัดตก
+            
+            // เพิ่มหัวข้อบนรูป
+            const title = document.createElement('h2');
+            title.innerHTML = `📊 ตารางสรุปคะแนนรวม - <span style="color:#D87093">${classData.name}</span>`;
+            title.style.color = '#7A4B3A';
+            title.style.fontFamily = "'Kanit', sans-serif";
+            title.style.fontSize = '32px';
+            title.style.fontWeight = 'bold';
+            title.style.marginBottom = '20px';
+            title.style.textAlign = 'center';
+            wrapper.appendChild(title);
+
+            // โคลนตารางเดิมมา
+            const clone = originalTable.cloneNode(true);
+            
+            // ลบ class sticky ออก เพื่อไม่ให้เกิดบัคเวลาเรนเดอร์ภาพ
+            const stickyCells = clone.querySelectorAll('.sticky');
+            stickyCells.forEach(cell => {
+                cell.classList.remove('sticky', 'left-0', 'left-[60px]', 'z-10', 'z-20');
+            });
+            
+            wrapper.appendChild(clone);
+            document.body.appendChild(wrapper);
+
+            try {
+                // รอ 1 วิ ให้เบราว์เซอร์เตรียม DOM ให้พร้อม
+                await new Promise(r => setTimeout(r, 1000)); 
+
+                const canvas = await html2canvas(wrapper, {
+                    scale: 2, // ความละเอียด 2 เท่า (ซูมไม่แตก)
+                    backgroundColor: '#ffffff',
+                    useCORS: true
+                });
+                
+                const imgData = canvas.toDataURL('image/png');
+                const a = document.createElement('a');
+                a.href = imgData;
+                a.download = `ตารางคะแนน_${classData.name}.png`;
+                a.click();
+                
+                closeModal(); // ปิดหน้าต่างโหลด
+            } catch(e) {
+                console.error('Error generating image:', e);
+                showModal('เกิดข้อผิดพลาด', 'ไม่สามารถสร้างไฟล์ภาพได้ครับ', '<i class="fa-solid fa-xmark"></i>', 'text-red-500');
+            } finally {
+                document.body.removeChild(wrapper);
+            }
         };
 
         window.resolveMissing = async function(stdId, colId) {
