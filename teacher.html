@@ -654,6 +654,7 @@
                         <p class="text-sm text-heart-brown/80 mt-1">ห้องที่เลือก: <span id="cfg-activeClassName" class="font-bold text-cozy-blue">-</span></p>
                     </div>
                     <div class="flex flex-wrap gap-2">
+                        <button onclick="autoFixNumbers()" class="bg-orange-100 text-orange-600 px-4 py-2 rounded-xl font-bold text-sm hover:bg-orange-200 transition-all" title="กวาดเลขที่ที่มีช่องโหว่ ให้มาเรียงต่อกัน 1 ถึง N ใหม่อัตโนมัติ"><i class="fa-solid fa-list-ol mr-2"></i>จัดเรียงเลขที่ใหม่</button>
                         <button onclick="openImportTSVModal()" class="bg-cozy-blue text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-blue-600 transition-all"><i class="fa-solid fa-paste mr-2"></i>วางข้อมูล (Paste)</button>
                         <button onclick="openAddStudentModal()" class="bg-cozy-pink text-pink-900 px-4 py-2 rounded-xl font-bold text-sm hover:bg-pink-300 transition-all"><i class="fa-solid fa-user-plus mr-2"></i>เพิ่มรายคน</button>
                     </div>
@@ -2175,7 +2176,8 @@
             
             // Total
             headHtml += `<th class="p-3 text-center bg-heart-cream border-r-2 border-heart-border/30 text-purple-700">รวม<br>(100)</th>`;
-            headHtml += `<th class="p-3 text-center bg-heart-cream text-purple-700">เกรด</th></tr>`;
+            headHtml += `<th class="p-3 text-center bg-heart-cream border-r-2 border-heart-border/30 text-purple-700">เกรด</th>`;
+            headHtml += `<th class="p-3 text-center bg-heart-cream text-purple-700 rounded-tr-xl">ผลการตัดสิน</th></tr>`;
             
             thead.innerHTML = headHtml;
 
@@ -2231,13 +2233,39 @@
                 let total = getFullScore(std);
                 let grade = getGradeString(total);
                 let gradeColor = grade === "0" || grade === "1.0" || grade === "1.5" ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700";
+                
+                let finalStatus = std.finalStatus || '';
 
                 bodyHtml += `<td class="p-3 text-center border-r-2 border-heart-border/30 font-number font-bold text-purple-700 bg-heart-cream/30">${total}</td>`;
-                bodyHtml += `<td class="p-3 text-center bg-white"><span class="px-3 py-1 rounded-full font-bold font-number ${gradeColor}">${grade}</span></td></tr>`;
+                bodyHtml += `<td class="p-3 text-center border-r-2 border-heart-border/20 bg-white"><span class="px-3 py-1 rounded-full font-bold font-number ${gradeColor}">${grade}</span></td>`;
+                
+                bodyHtml += `<td class="p-2 text-center bg-white">
+                    <select onchange="updateFinalStatus('${std.id}', this.value)" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-sm font-bold text-heart-brown focus:outline-none focus:border-cozy-blue cursor-pointer hover:bg-slate-100 transition-colors ${finalStatus ? 'border-cozy-blue text-cozy-blue bg-blue-50' : ''}">
+                        <option value="" ${finalStatus === '' ? 'selected' : ''}>-</option>
+                        <option value="ผ่าน" ${finalStatus === 'ผ่าน' ? 'selected' : ''}>ผ่าน</option>
+                        <option value="0" ${finalStatus === '0' ? 'selected' : ''}>0</option>
+                        <option value="ร" ${finalStatus === 'ร' ? 'selected' : ''}>ร</option>
+                        <option value="ม.ส." ${finalStatus === 'ม.ส.' ? 'selected' : ''}>ม.ส.</option>
+                    </select>
+                </td></tr>`;
             });
 
             tbody.innerHTML = bodyHtml;
         }
+
+        window.updateFinalStatus = async function(studentId, value) {
+            const classData = allClasses.find(c => c.id === currentClassId);
+            if(!classData) return;
+            const student = classData.students.find(s => String(s.id) === String(studentId));
+            if(student) {
+                student.finalStatus = value;
+                try {
+                    await upsertStudentsSafely([student]);
+                    // Change color of the select box if needed by re-rendering
+                    renderFullScore();
+                } catch(e) { console.error(e); }
+            }
+        };
 
         window.exportFullScoreToExcel = function() {
             const classData = allClasses.find(c => c.id === currentClassId);
@@ -2257,7 +2285,7 @@
             headRow.push('สถานะกลางภาค');
             t3Cols.forEach(c => headRow.push(`T3: ${c.name} (${c.max})`));
             t4Cols.forEach(c => headRow.push(`T4: ${c.name} (${c.max})`));
-            headRow.push('รวม (100)', 'เกรด');
+            headRow.push('รวม (100)', 'เกรด', 'ผลการตัดสิน');
             
             aoa.push(headRow);
 
@@ -2285,7 +2313,7 @@
                 });
 
                 let total = getFullScore(std);
-                row.push(total, getGradeString(total));
+                row.push(total, getGradeString(total), std.finalStatus || '-');
 
                 aoa.push(row);
             });
@@ -2298,13 +2326,13 @@
                 { wch: 35 }  // ชื่อ-สกุล
             ];
             
-            // Widths for T1, T2, T2Pass, T3, T4, Total, Grade
+            // Widths for T1, T2, T2Pass, T3, T4, Total, Grade, FinalStatus
             t1Cols.forEach(() => colWidths.push({ wch: 12 }));
             t2Cols.forEach(() => colWidths.push({ wch: 12 }));
             colWidths.push({ wch: 12 }); // T2 Pass
             t3Cols.forEach(() => colWidths.push({ wch: 12 }));
             t4Cols.forEach(() => colWidths.push({ wch: 12 }));
-            colWidths.push({ wch: 10 }, { wch: 8 }); // Total, Grade
+            colWidths.push({ wch: 10 }, { wch: 8 }, { wch: 15 }); // Total, Grade, FinalStatus
             
             ws['!cols'] = colWidths;
 
@@ -2891,21 +2919,59 @@
             document.getElementById('cfg-studentList').innerHTML = html;
         }
 
+        window.autoFixNumbers = async function() {
+            if(!currentClassId) return alert('กรุณาเลือกห้องเรียนก่อน');
+            if(!confirm('ยืนยันให้ระบบจัดการจัดเรียงเลขที่ใหม่ 1 ถึง N อัตโนมัติ? (เลขที่ที่มีช่องโหว่จะถูกบีบอัดเข้าหากัน)')) return;
+            
+            const classData = allClasses.find(c => c.id === currentClassId);
+            const activeStudents = classData.students.filter(s => !isInactiveStudent(s)).sort((a,b) => a.number - b.number);
+            
+            let toUpsert = [];
+            let currentNum = 1;
+            activeStudents.forEach(s => {
+                if(s.number !== currentNum) {
+                    s.number = currentNum;
+                    toUpsert.push(s);
+                }
+                currentNum++;
+            });
+            
+            if(toUpsert.length > 0) {
+                try {
+                    await upsertStudentsSafely(toUpsert);
+                    renderStudentSettingsList();
+                    renderSpreadsheet();
+                    if(currentView === 'fullscore') renderFullScore();
+                    showModal('สำเร็จ', 'จัดเรียงเลขที่ใหม่เสร็จสมบูรณ์เรียบร้อย', '<i class="fa-solid fa-check"></i>', 'text-green-500');
+                } catch(e) { console.error(e); }
+            } else {
+                showModal('ไม่ต้องจัดเรียงใหม่', 'เลขที่ของนักเรียนเรียงลำดับถูกต้องสมบูรณ์แล้วครับ', '<i class="fa-solid fa-info-circle"></i>', 'text-cozy-blue');
+            }
+        };
+
         window.moveStudentUp = async function(id) {
             const classData = allClasses.find(c => c.id === currentClassId);
             const activeStudents = classData.students.filter(s => !isInactiveStudent(s)).sort((a,b) => a.number - b.number);
             const idx = activeStudents.findIndex(s => s.id === id);
             if (idx <= 0) return;
             
-            const currentObj = activeStudents[idx];
-            const prevObj = activeStudents[idx - 1];
+            // Swap in array
+            const temp = activeStudents[idx];
+            activeStudents[idx] = activeStudents[idx - 1];
+            activeStudents[idx - 1] = temp;
             
-            // Swap numbers
-            const temp = currentObj.number;
-            currentObj.number = prevObj.number;
-            prevObj.number = temp;
+            // Re-assign numbers 1 to N sequentially
+            let currentNum = 1;
+            let toUpsert = [];
+            activeStudents.forEach(s => {
+                if (s.number !== currentNum) {
+                    s.number = currentNum;
+                    toUpsert.push(s);
+                }
+                currentNum++;
+            });
             
-            await upsertStudentsSafely([currentObj, prevObj]);
+            if(toUpsert.length > 0) await upsertStudentsSafely(toUpsert);
             renderStudentSettingsList();
             renderSpreadsheet();
             if(currentView === 'fullscore') renderFullScore();
@@ -2917,19 +2983,27 @@
             const idx = activeStudents.findIndex(s => s.id === id);
             if (idx === -1 || idx >= activeStudents.length - 1) return;
             
-            const currentObj = activeStudents[idx];
-            const nextObj = activeStudents[idx + 1];
+            // Swap in array
+            const temp = activeStudents[idx];
+            activeStudents[idx] = activeStudents[idx + 1];
+            activeStudents[idx + 1] = temp;
             
-            // Swap numbers
-            const temp = currentObj.number;
-            currentObj.number = nextObj.number;
-            nextObj.number = temp;
+            // Re-assign numbers 1 to N sequentially
+            let currentNum = 1;
+            let toUpsert = [];
+            activeStudents.forEach(s => {
+                if (s.number !== currentNum) {
+                    s.number = currentNum;
+                    toUpsert.push(s);
+                }
+                currentNum++;
+            });
             
-            await upsertStudentsSafely([currentObj, nextObj]);
+            if(toUpsert.length > 0) await upsertStudentsSafely(toUpsert);
             renderStudentSettingsList();
             renderSpreadsheet();
             if(currentView === 'fullscore') renderFullScore();
-        }
+        };
 
         function openAddStudentModal(editId = null) {
             if(!currentClassId) return alert('กรุณาเลือกห้องเรียนจากแถบเมนูด้านซ้ายก่อน');
