@@ -367,11 +367,18 @@
                     missingCount++;
                     statusHtml = '<span class="px-3 py-1 bg-red-100 text-red-600 rounded-full text-xs font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i>ค้างส่ง</span>';
                     valHtml = '-';
-                    rowClass = 'missing-row hover:bg-red-100 transition-colors';
+                    rowClass = 'missing-row hover:bg-red-100 transition-colors bg-red-50/50';
                 } else {
                     let num = parseFloat(s);
-                    statusHtml = '<span class="px-3 py-1 bg-green-100 text-green-600 rounded-full text-xs font-bold"><i class="fa-solid fa-check mr-1"></i>ส่งแล้ว</span>';
                     valHtml = num;
+                    
+                    // หากเป็นคะแนนกลางภาคและรวมแล้วไม่ผ่านเกณฑ์ (น้อยกว่า 7)
+                    if (col.cat === 'T2' && t2Info.rawT < 7) {
+                        statusHtml = '<span class="px-3 py-1 bg-red-500 text-white rounded-full text-xs font-bold shadow-sm"><i class="fa-solid fa-file-pen mr-1"></i>ดำเนินการสอบแก้ตัว</span>';
+                        rowClass = 'missing-row hover:bg-red-100 transition-colors bg-red-50';
+                    } else {
+                        statusHtml = '<span class="px-3 py-1 bg-green-100 text-green-600 rounded-full text-xs font-bold"><i class="fa-solid fa-check mr-1"></i>ส่งแล้ว</span>';
+                    }
                 }
 
                 gradesHtml += `
