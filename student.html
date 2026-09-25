@@ -374,7 +374,7 @@
                     
                     // หากเป็นคะแนนกลางภาคและรวมแล้วไม่ผ่านเกณฑ์ (น้อยกว่า 7)
                     if (col.cat === 'T2' && t2Info.rawT < 7) {
-                        statusHtml = '<span class="px-3 py-1 bg-red-500 text-white rounded-full text-xs font-bold shadow-sm"><i class="fa-solid fa-file-pen mr-1"></i>ดำเนินการสอบแก้ตัว</span>';
+                        statusHtml = '<span class="px-3 py-1 bg-red-100 text-red-600 rounded-full text-xs font-bold shadow-sm"><i class="fa-solid fa-file-pen mr-1"></i>ดำเนินการสอบแก้ตัว</span>';
                         rowClass = 'missing-row hover:bg-red-100 transition-colors bg-red-50';
                     } else {
                         statusHtml = '<span class="px-3 py-1 bg-green-100 text-green-600 rounded-full text-xs font-bold"><i class="fa-solid fa-check mr-1"></i>ส่งแล้ว</span>';
@@ -492,11 +492,11 @@
 
             if (!t2Pass) {
                 alertsHtml += `
-                <div class="bg-orange-50 border-2 border-orange-200 rounded-2xl p-4 flex items-center gap-4 shadow-sm animate-bounce">
-                    <div class="w-12 h-12 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-file-pen"></i></div>
+                <div class="bg-red-50 border-2 border-red-200 rounded-2xl p-4 flex items-center gap-4 shadow-sm animate-bounce">
+                    <div class="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-file-pen"></i></div>
                     <div>
-                        <h4 class="font-bold text-orange-700">แจ้งเตือนสอบแก้ตัว!</h4>
-                        <p class="text-sm text-orange-600">คะแนนสอบกลางภาคของคุณไม่ผ่านเกณฑ์ กรุณาติดต่อคุณครูเพื่อดำเนินการสอบแก้โดยด่วนครับ</p>
+                        <h4 class="font-bold text-red-700">แจ้งเตือนด่วน! สอบแก้ตัวกลางภาค</h4>
+                        <p class="text-sm text-red-600">คะแนนสอบกลางภาคของคุณไม่ผ่านเกณฑ์ กรุณาติดต่อคุณครูเพื่อดำเนินการสอบแก้โดยด่วนครับ</p>
                     </div>
                 </div>`;
             }
