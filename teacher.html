@@ -2466,6 +2466,29 @@
                 cell.classList.remove('sticky', 'left-0', 'left-[60px]', 'z-10', 'z-20');
             });
             
+            // แปลง Input/Select เป็น Text ธรรมดา เพื่อให้ html2canvas วาดภาพติดชัวร์ๆ
+            const originalInputs = originalTable.querySelectorAll('input, select');
+            const cloneInputs = clone.querySelectorAll('input, select');
+            
+            originalInputs.forEach((origInput, index) => {
+                if(!cloneInputs[index]) return;
+                const parent = cloneInputs[index].parentElement;
+                
+                let val = origInput.value;
+                if(origInput.tagName === 'SELECT') {
+                    val = origInput.options[origInput.selectedIndex]?.text || '';
+                }
+
+                // ดึงสีพื้นหลังมาใส่ที่ TD แทน เพื่อให้ติดในรูป
+                if (origInput.classList.contains('bg-red-100')) {
+                    parent.classList.add('bg-red-100', 'text-red-600', 'font-bold');
+                    parent.innerHTML = val || '-';
+                } else {
+                    parent.classList.add('text-slate-600');
+                    parent.innerHTML = val || '-';
+                }
+            });
+            
             wrapper.appendChild(clone);
             document.body.appendChild(wrapper);
 
