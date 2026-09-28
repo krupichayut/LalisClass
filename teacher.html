@@ -3855,6 +3855,45 @@
             </div>
         </div>
     </div>
+    <!-- Floating Save Button -->
+    <button onclick="forceSaveData()" id="floatingSaveBtn" class="fixed bottom-6 right-6 bg-cozy-purple hover:bg-purple-600 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all z-50 flex items-center gap-3 border-2 border-white/20">
+        <i class="fa-solid fa-floppy-disk text-xl"></i>
+        <span>บันทึกข้อมูล</span>
+    </button>
 
+    <script>
+        window.forceSaveData = async function() {
+            if(!currentClassId) {
+                showModal('แจ้งเตือน', 'กรุณาเลือกห้องเรียนหรือเข้าสู่ระบบให้เรียบร้อยก่อนทำการบันทึกครับ', '<i class="fa-solid fa-circle-info"></i>', 'text-amber-500');
+                return;
+            }
+            
+            const btn = document.getElementById('floatingSaveBtn');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-xl"></i> <span>กำลังบันทึก...</span>';
+            btn.disabled = true;
+            btn.classList.add('opacity-70');
+
+            try {
+                // If there are students in memory, push them explicitly
+                if(MOCK_STUDENTS && MOCK_STUDENTS.length > 0) {
+                    await upsertStudentsSafely(MOCK_STUDENTS);
+                } else {
+                    // Just update the class timestamp if no students
+                    await db.collection('classes').doc(currentClassId).update({
+                        updatedAt: new Date().toISOString()
+                    });
+                }
+                showToast('<i class="fa-solid fa-cloud-arrow-up mr-2 text-xl"></i> บันทึกข้อมูลสำเร็จเรียบร้อยแล้ว!', 'bg-green-500');
+            } catch(e) {
+                console.error(e);
+                showModal('บันทึกไม่สำเร็จ', 'เกิดข้อผิดพลาด: ' + e.message, '<i class="fa-solid fa-triangle-exclamation"></i>', 'text-red-500');
+            } finally {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+                btn.classList.remove('opacity-70');
+            }
+        };
+    </script>
 </body>
 </html>
