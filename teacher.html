@@ -1823,15 +1823,8 @@
         }
 
         function getCategoryScaled(student, catId) {
-            const { rawTotal, rawMax } = getCategoryTotal(student, catId);
-            const weights = getGradeWeights();
-            const targetMax = weights[catId] || 0;
-            
-            if (rawMax === 0) return 0;
-            
-            let scaled = (rawTotal / rawMax) * targetMax;
-            // ปัดเศษให้ลงท้ายด้วย .0 หรือ .5 เท่านั้น
-            return Math.round(scaled * 2) / 2;
+            const { rawTotal } = getCategoryTotal(student, catId);
+            return rawTotal;
         }
 
         function getAttendanceScore(student) {
@@ -1853,14 +1846,21 @@
             return getCategoryScaled(student, 'T1') + getCategoryScaled(student, 'T2') + getCategoryScaled(student, 'T3') + getCategoryScaled(student, 'T4');
         }
 
-        function getGradeString(score) {
-            if(score >= 80) return "4.0";
-            if(score >= 75) return "3.5";
-            if(score >= 70) return "3.0";
-            if(score >= 65) return "2.5";
-            if(score >= 60) return "2.0";
-            if(score >= 55) return "1.5";
-            if(score >= 50) return "1.0";
+        function getFullMax() {
+            let allCols = getActiveGradeColumns();
+            return allCols.reduce((sum, c) => sum + (Number(c.max) || 0), 0);
+        }
+
+        function getGradeString(score, maxScore) {
+            if(!maxScore || maxScore === 0) return "0";
+            let pct = (score / maxScore) * 100;
+            if(pct >= 80) return "4.0";
+            if(pct >= 75) return "3.5";
+            if(pct >= 70) return "3.0";
+            if(pct >= 65) return "2.5";
+            if(pct >= 60) return "2.0";
+            if(pct >= 55) return "1.5";
+            if(pct >= 50) return "1.0";
             return "0";
         }
 
@@ -1937,7 +1937,7 @@
                     let t3 = getCategoryScaled(std, 'T3');
                     let t4 = getCategoryScaled(std, 'T4');
                     let total = t1 + t2 + t3 + t4;
-                    let grade = getGradeString(total);
+                    let grade = getGradeString(total, getFullMax());
                     let gradeColor = grade === "0" || grade === "1.0" || grade === "1.5" ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700";
 
                     bodyHtml += `
@@ -2191,7 +2191,7 @@
             t4Cols.forEach(col => { headHtml += `<th class="p-2 text-center bg-orange-50 border-r border-dashed border-orange-200"><div class="text-xs truncate w-16" title="${escapeHTML(col.name)}">${escapeHTML(col.name)}</div><div class="text-[10px] text-slate-400">(${col.max})</div></th>`; });
             
             // Total
-            headHtml += `<th class="p-3 text-center bg-heart-cream border-r-2 border-heart-border/30 text-purple-700">รวม<br>(100)</th>`;
+            headHtml += `<th class="p-3 text-center bg-heart-cream border-r-2 border-heart-border/30 text-purple-700">รวม<br>(${getFullMax()})</th>`;
             headHtml += `<th class="p-3 text-center bg-heart-cream border-r-2 border-heart-border/30 text-purple-700">เกรด</th>`;
             headHtml += `<th class="p-3 text-center bg-heart-cream text-purple-700 rounded-tr-xl">ผลการตัดสิน</th></tr>`;
             
@@ -2267,7 +2267,7 @@
 
                 // Totals
                 let total = getFullScore(std);
-                let grade = getGradeString(total);
+                let grade = getGradeString(total, getFullMax());
                 let gradeColor = grade === "0" || grade === "1.0" || grade === "1.5" ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700";
                 
                 let finalStatus = std.finalStatus || '';
@@ -2312,7 +2312,7 @@
                 const std = classData.students.find(s => String(s.id) === String(studentId));
                 if(std) {
                     let total = getFullScore(std);
-                    let grade = getGradeString(total);
+                    let grade = getGradeString(total, getFullMax());
                     let gradeColor = grade === "0" || grade === "1.0" || grade === "1.5" ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700";
                     
                     const totalEl = document.getElementById(`total-${studentId}`);
@@ -2370,7 +2370,7 @@
             headRow.push('สถานะกลางภาค');
             t3Cols.forEach(c => headRow.push(`T3: ${c.name} (${c.max})`));
             t4Cols.forEach(c => headRow.push(`T4: ${c.name} (${c.max})`));
-            headRow.push('รวม (100)', 'เกรด', 'ผลการตัดสิน');
+            headRow.push(`รวม (${getFullMax()})`, 'เกรด', 'ผลการตัดสิน');
             
             aoa.push(headRow);
 
@@ -2398,7 +2398,7 @@
                 });
 
                 let total = getFullScore(std);
-                row.push(total, getGradeString(total), std.finalStatus || '-');
+                row.push(total, getGradeString(total, getFullMax()), std.finalStatus || '-');
 
                 aoa.push(row);
             });
@@ -2761,7 +2761,7 @@
                     let grades = { '4': 0, '3.5': 0, '3': 0, '2.5': 0, '2': 0, '1.5': 0, '1': 0, '0': 0 };
                     MOCK_STUDENTS.forEach(std => {
                         let total = getFullScore(std);
-                        let g = getGradeString(total);
+                        let g = getGradeString(total, getFullMax());
                         if(g === "4.0") grades['4']++;
                         else grades[g]++;
                     });
@@ -3416,7 +3416,7 @@
                     let t4 = getCategoryScaled(std, 'T4');
                     let total = t1 + t2 + t3 + t4;
                     let t0 = getAttendanceScore(std);
-                    let grade = getGradeString(total);
+                    let grade = getGradeString(total, getFullMax());
                     row.push(t0, t1, t2, t3, t4, total, grade);
                     aoa.push(row);
                 });

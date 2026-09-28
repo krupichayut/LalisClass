@@ -342,12 +342,7 @@
             let t3Info = getCatTotal('T3');
             let t4Info = getCatTotal('T4');
             
-            let t1 = t1Info.rawM > 0 ? Math.round((t1Info.rawT / t1Info.rawM) * weights.T1) : 0;
-            let t2 = t2Info.rawM > 0 ? Math.round((t2Info.rawT / t2Info.rawM) * weights.T2) : 0;
-            let t3 = t3Info.rawM > 0 ? Math.round((t3Info.rawT / t3Info.rawM) * weights.T3) : 0;
-            let t4 = t4Info.rawM > 0 ? Math.round((t4Info.rawT / t4Info.rawM) * weights.T4) : 0;
-            
-            let totalScore = t1 + t2 + t3 + t4;
+            let totalScore = t1Info.rawT + t2Info.rawT + t3Info.rawT + t4Info.rawT;
 
             columns.forEach(col => {
                 let s = scores[col.id];
@@ -403,15 +398,17 @@
             document.getElementById('lblTotalScore').innerText = Math.round(totalScore) || 0;
             document.getElementById('lblMissingCount').innerText = missingCount;
 
-            // Simple Grade Calculation (Assumes 100 max total)
+            // Grade Calculation (percentage-based)
+            let fullMax = columns.reduce((sum, c) => sum + (Number(c.max) || 0), 0);
+            let pct = fullMax > 0 ? (totalScore / fullMax) * 100 : 0;
             let grade = '0';
-            if(totalScore >= 80) grade = '4.0';
-            else if(totalScore >= 75) grade = '3.5';
-            else if(totalScore >= 70) grade = '3.0';
-            else if(totalScore >= 65) grade = '2.5';
-            else if(totalScore >= 60) grade = '2.0';
-            else if(totalScore >= 55) grade = '1.5';
-            else if(totalScore >= 50) grade = '1.0';
+            if(pct >= 80) grade = '4.0';
+            else if(pct >= 75) grade = '3.5';
+            else if(pct >= 70) grade = '3.0';
+            else if(pct >= 65) grade = '2.5';
+            else if(pct >= 60) grade = '2.0';
+            else if(pct >= 55) grade = '1.5';
+            else if(pct >= 50) grade = '1.0';
             
             document.getElementById('lblExpectedGrade').innerText = grade;
 
@@ -502,7 +499,7 @@
             }
 
             let hasMissing = missingCount > 0;
-            let scoreBelow50 = totalScore < 50;
+            let scoreBelow50 = pct < 50;
 
             if (scoreBelow50 && hasMissing) {
                 alertsHtml += `
