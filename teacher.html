@@ -2215,10 +2215,10 @@
                 t1Cols.forEach(col => { 
                     let val = std.scores[col.id];
                     let isMissing = (val === undefined || val === null || val === '');
-                    bodyHtml += `<td class="p-0 border-r border-dashed border-purple-200">
+                    bodyHtml += `<td class="p-1 border-r border-dashed border-purple-200">
                         <input type="number" step="0.5" min="0" max="${col.max}" 
                         onchange="updateScoreFromFull('${std.id}', '${col.id}', this.value)"
-                        class="w-full h-full p-2 text-center bg-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-400 font-number ${isMissing ? 'bg-red-100 text-red-600 font-bold' : 'text-slate-600 bg-purple-50/30'}"
+                        class="w-full h-full p-1 text-center focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-400 font-number rounded ${isMissing ? 'bg-red-50 border-2 border-red-400 text-red-600 font-bold' : 'text-slate-600 bg-transparent hover:bg-purple-50'}"
                         value="${!isMissing ? val : ''}" placeholder="-">
                     </td>`; 
                 });
@@ -2229,10 +2229,10 @@
                     let val = std.scores[col.id];
                     let isMissing = (val === undefined || val === null || val === '');
                     if(!isMissing) t2Raw += Number(val);
-                    bodyHtml += `<td class="p-0 border-r border-dashed border-blue-200">
+                    bodyHtml += `<td class="p-1 border-r border-dashed border-blue-200">
                         <input type="number" step="0.5" min="0" max="${col.max}" 
                         onchange="updateScoreFromFull('${std.id}', '${col.id}', this.value)"
-                        class="w-full h-full p-2 text-center bg-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 font-number ${isMissing ? 'bg-red-100 text-red-600 font-bold' : 'text-slate-600 bg-blue-50/30'}"
+                        class="w-full h-full p-1 text-center focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 font-number rounded ${isMissing ? 'bg-red-50 border-2 border-red-400 text-red-600 font-bold' : 'text-slate-600 bg-transparent hover:bg-blue-50'}"
                         value="${!isMissing ? val : ''}" placeholder="-">
                     </td>`; 
                 });
@@ -2243,10 +2243,10 @@
                 t3Cols.forEach(col => { 
                     let val = std.scores[col.id];
                     let isMissing = (val === undefined || val === null || val === '');
-                    bodyHtml += `<td class="p-0 border-r border-dashed border-pink-200">
+                    bodyHtml += `<td class="p-1 border-r border-dashed border-pink-200">
                         <input type="number" step="0.5" min="0" max="${col.max}" 
                         onchange="updateScoreFromFull('${std.id}', '${col.id}', this.value)"
-                        class="w-full h-full p-2 text-center bg-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-400 font-number ${isMissing ? 'bg-red-100 text-red-600 font-bold' : 'text-slate-600 bg-pink-50/30'}"
+                        class="w-full h-full p-1 text-center focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-400 font-number rounded ${isMissing ? 'bg-red-50 border-2 border-red-400 text-red-600 font-bold' : 'text-slate-600 bg-transparent hover:bg-pink-50'}"
                         value="${!isMissing ? val : ''}" placeholder="-">
                     </td>`; 
                 });
@@ -2257,10 +2257,10 @@
                     let val = std.scores[col.id];
                     let isMissing = (val === undefined || val === null || val === '');
                     if(!isMissing) t4Raw += Number(val);
-                    bodyHtml += `<td class="p-0 border-r border-dashed border-orange-200">
+                    bodyHtml += `<td class="p-1 border-r border-dashed border-orange-200">
                         <input type="number" step="0.5" min="0" max="${col.max}" 
                         onchange="updateScoreFromFull('${std.id}', '${col.id}', this.value)"
-                        class="w-full h-full p-2 text-center bg-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-400 font-number ${isMissing ? 'bg-red-100 text-red-600 font-bold' : 'text-slate-600 bg-orange-50/30'}"
+                        class="w-full h-full p-1 text-center focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-400 font-number rounded ${isMissing ? 'bg-red-50 border-2 border-red-400 text-red-600 font-bold' : 'text-slate-600 bg-transparent hover:bg-orange-50'}"
                         value="${!isMissing ? val : ''}" placeholder="-">
                     </td>`; 
                 });
@@ -2480,8 +2480,8 @@
                 }
 
                 // ดึงสีพื้นหลังมาใส่ที่ TD แทน เพื่อให้ติดในรูป
-                if (origInput.classList.contains('bg-red-100')) {
-                    parent.classList.add('bg-red-100', 'text-red-600', 'font-bold');
+                if (origInput.classList.contains('bg-red-50')) {
+                    parent.classList.add('bg-red-50', 'border-2', 'border-red-400', 'text-red-600', 'font-bold', 'rounded');
                     parent.innerHTML = val || '-';
                 } else {
                     parent.classList.add('text-slate-600');
