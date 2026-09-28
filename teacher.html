@@ -3884,7 +3884,7 @@
                         updatedAt: new Date().toISOString()
                     });
                 }
-                showToast('<i class="fa-solid fa-cloud-arrow-up mr-2 text-xl"></i> บันทึกข้อมูลสำเร็จเรียบร้อยแล้ว!', 'bg-green-500');
+                showModal('สำเร็จ', 'บันทึกข้อมูลเรียบร้อยแล้วครับ!', '<i class="fa-solid fa-cloud-arrow-up"></i>', 'text-green-500');
             } catch(e) {
                 console.error(e);
                 showModal('บันทึกไม่สำเร็จ', 'เกิดข้อผิดพลาด: ' + e.message, '<i class="fa-solid fa-triangle-exclamation"></i>', 'text-red-500');
