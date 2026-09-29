@@ -2416,9 +2416,14 @@
             let headRow = ['เลขที่', 'ชื่อ-สกุล'];
             
             t1Cols.forEach(c => headRow.push(`T1: ${c.name} (${c.max})`));
+            headRow.push('รวมก่อนกลางภาค');
+            
             t2Cols.forEach(c => headRow.push(`T2: ${c.name} (${c.max})`));
             headRow.push('สถานะกลางภาค');
+            
             t3Cols.forEach(c => headRow.push(`T3: ${c.name} (${c.max})`));
+            headRow.push('รวมหลังกลางภาค');
+            
             t4Cols.forEach(c => headRow.push(`T4: ${c.name} (${c.max})`));
             headRow.push(`รวม (${getFullMax()})`, 'เกรด', 'ผลการตัดสิน');
             
@@ -2428,22 +2433,34 @@
                 let row = [std.number, std.name + (isInactiveStudent(std) ? ' (ย้ายออก)' : '')];
                 if(!std.scores) std.scores = {};
                 
-                t1Cols.forEach(c => row.push(std.scores[c.id] !== undefined && std.scores[c.id] !== null ? std.scores[c.id] : ''));
+                let t1Raw = 0;
+                t1Cols.forEach(c => {
+                    let val = std.scores[c.id];
+                    if(val !== undefined && val !== null && val !== '') t1Raw += Number(val);
+                    row.push(val !== undefined && val !== null ? val : '');
+                });
+                row.push(Math.round(t1Raw * 100) / 100);
                 
                 let t2Raw = 0;
                 t2Cols.forEach(c => { 
                     let val = std.scores[c.id];
-                    if(val !== undefined && val !== null) t2Raw += Number(val);
+                    if(val !== undefined && val !== null && val !== '') t2Raw += Number(val);
                     row.push(val !== undefined && val !== null ? val : '');
                 });
                 row.push(t2Raw >= 7 ? 'ผ่าน' : 'ไม่ผ่าน');
 
-                t3Cols.forEach(c => row.push(std.scores[c.id] !== undefined && std.scores[c.id] !== null ? std.scores[c.id] : ''));
+                let t3Raw = 0;
+                t3Cols.forEach(c => {
+                    let val = std.scores[c.id];
+                    if(val !== undefined && val !== null && val !== '') t3Raw += Number(val);
+                    row.push(val !== undefined && val !== null ? val : '');
+                });
+                row.push(Math.round(t3Raw * 100) / 100);
 
                 let t4Raw = 0;
                 t4Cols.forEach(c => { 
                     let val = std.scores[c.id];
-                    if(val !== undefined && val !== null) t4Raw += Number(val);
+                    if(val !== undefined && val !== null && val !== '') t4Raw += Number(val);
                     row.push(val !== undefined && val !== null ? val : '');
                 });
 
