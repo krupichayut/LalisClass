@@ -334,6 +334,7 @@
                     rawT += Number(scores[c.id]) || 0;
                     rawM += Number(c.max) || 0;
                 });
+                rawT = Math.round(rawT * 100) / 100;
                 return { rawT, rawM };
             }
             

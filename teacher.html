@@ -425,6 +425,9 @@
                     <button onclick="exportAttendanceToExcel()" class="pill-button bg-green-50 text-green-600 border-2 border-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-green-100">
                         <i class="fa-solid fa-file-excel"></i> ส่งออก Excel
                     </button>
+                    <button onclick="forceSaveData(this)" class="pill-button bg-rose-50 text-rose-600 border-2 border-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-rose-100">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> บันทึกข้อมูล
+                    </button>
                 </div>
                 <div class="bg-white rounded-3xl shadow-cozy border-2 border-white overflow-hidden">
                     <div class="overflow-x-auto">
@@ -455,6 +458,9 @@
                     </button>
                     <button onclick="openAddColModal()" class="pill-button bg-[#C4A4F9] border-[3px] border-white text-white px-5 py-2.5 rounded-2xl font-bold shadow-sm flex items-center gap-2 hover:bg-[#B084F5] hover:text-white whitespace-nowrap">
                         <i class="fa-solid fa-plus"></i> เพิ่มช่องคะแนน
+                    </button>
+                    <button onclick="forceSaveData(this)" class="pill-button bg-rose-50 text-rose-600 border-[3px] border-white px-5 py-2.5 rounded-2xl font-bold shadow-sm flex items-center gap-2 hover:bg-rose-100 whitespace-nowrap">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> บันทึกข้อมูล
                     </button>
                 </div>
             </header>
@@ -507,6 +513,11 @@
                     </div>
                     <p class="text-heart-brown/80 mt-1">ช่วยเหลือนักเรียนให้ทำภารกิจสำเร็จ ไม่มีใครถูกทิ้งไว้ข้างหลัง</p>
                 </div>
+                <div class="flex gap-2">
+                    <button onclick="forceSaveData(this)" class="pill-button bg-rose-50 text-rose-600 border-2 border-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-rose-100">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> บันทึกข้อมูล
+                    </button>
+                </div>
             </header>
 
             <!-- Filters -->
@@ -547,6 +558,9 @@
                     </button>
                     <button onclick="exportFullScoreToExcel()" class="pill-button bg-green-50 text-green-600 border-2 border-white px-4 py-2 rounded-2xl font-bold shadow-sm flex items-center gap-2 hover:bg-green-100 whitespace-nowrap">
                         <i class="fa-solid fa-file-excel"></i> ส่งออก Excel (คะแนนรวม)
+                    </button>
+                    <button onclick="forceSaveData(this)" class="pill-button bg-rose-50 text-rose-600 border-2 border-white px-4 py-2 rounded-2xl font-bold shadow-sm flex items-center gap-2 hover:bg-rose-100 whitespace-nowrap">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> บันทึกข้อมูล
                     </button>
                 </div>
             </header>
@@ -1816,9 +1830,14 @@
             let rawTotal = 0;
             let rawMax = 0;
             cols.forEach(c => {
-                rawTotal += student.scores[c.id] || 0;
-                rawMax += c.max;
+                let v = Number(student.scores[c.id]);
+                if(!isNaN(v)) {
+                    rawTotal += v;
+                }
+                rawMax += Number(c.max) || 0;
             });
+            // ป้องกันปัญหา Floating point ของ Javascript (เช่น 0.1 + 0.2 = 0.300000000004)
+            rawTotal = Math.round(rawTotal * 100) / 100;
             return { rawTotal, rawMax };
         }
 
@@ -2179,13 +2198,15 @@
             
             // T1
             t1Cols.forEach(col => { headHtml += `<th class="p-2 text-center bg-purple-50 border-r border-dashed border-purple-200"><div class="text-xs truncate w-16" title="${escapeHTML(col.name)}">${escapeHTML(col.name)}</div><div class="text-[10px] text-slate-400">(${col.max})</div></th>`; });
+            headHtml += `<th class="p-2 text-center bg-purple-100 border-r-2 border-purple-300 text-purple-800">รวมก่อน<br>กลางภาค</th>`;
             
             // T2
             t2Cols.forEach(col => { headHtml += `<th class="p-2 text-center bg-blue-50 border-r border-dashed border-blue-200"><div class="text-xs truncate w-16" title="${escapeHTML(col.name)}">${escapeHTML(col.name)}</div><div class="text-[10px] text-slate-400">(${col.max})</div></th>`; });
-            headHtml += `<th class="p-2 text-center bg-blue-100 border-r-2 border-blue-300">สถานะ<br>กลางภาค</th>`;
+            headHtml += `<th class="p-2 text-center bg-blue-100 border-r-2 border-blue-300 text-blue-800">สถานะ<br>กลางภาค</th>`;
             
             // T3
             t3Cols.forEach(col => { headHtml += `<th class="p-2 text-center bg-pink-50 border-r border-dashed border-pink-200"><div class="text-xs truncate w-16" title="${escapeHTML(col.name)}">${escapeHTML(col.name)}</div><div class="text-[10px] text-slate-400">(${col.max})</div></th>`; });
+            headHtml += `<th class="p-2 text-center bg-pink-100 border-r-2 border-pink-300 text-pink-800">รวมหลัง<br>กลางภาค</th>`;
             
             // T4
             t4Cols.forEach(col => { headHtml += `<th class="p-2 text-center bg-orange-50 border-r border-dashed border-orange-200"><div class="text-xs truncate w-16" title="${escapeHTML(col.name)}">${escapeHTML(col.name)}</div><div class="text-[10px] text-slate-400">(${col.max})</div></th>`; });
@@ -2212,9 +2233,11 @@
                     <td class="p-3 border-r-2 border-dashed border-heart-border/20 font-medium text-heart-brown whitespace-nowrap bg-white sticky left-[60px] z-10">${escapeHTML(std.name)} ${isTransferred ? '<span class="text-xs bg-slate-200 px-1 rounded ml-2">ย้ายออก</span>' : ''}</td>`;
                 
                 // T1
+                let t1Raw = 0;
                 t1Cols.forEach(col => { 
                     let val = std.scores[col.id];
                     let isMissing = (val === undefined || val === null || val === '');
+                    if(!isMissing) t1Raw += Number(val);
                     bodyHtml += `<td class="p-1 border-r border-dashed border-purple-200">
                         <input type="number" step="0.5" min="0" max="${col.max}" 
                         onchange="updateScoreFromFull('${std.id}', '${col.id}', this.value)"
@@ -2222,6 +2245,7 @@
                         value="${!isMissing ? val : ''}" placeholder="-">
                     </td>`; 
                 });
+                bodyHtml += `<td id="t1total-${std.id}" class="p-2 text-center border-r-2 border-purple-300 font-bold text-xs bg-purple-50 text-purple-700">${t1Raw}</td>`;
                 
                 // T2
                 let t2Raw = 0;
@@ -2240,9 +2264,11 @@
                 bodyHtml += `<td id="t2pass-${std.id}" class="p-2 text-center border-r-2 border-blue-300 font-bold text-xs ${t2Pass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${t2Pass ? '✅ ผ่าน' : '❌ ไม่ผ่าน'}</td>`;
 
                 // T3
+                let t3Raw = 0;
                 t3Cols.forEach(col => { 
                     let val = std.scores[col.id];
                     let isMissing = (val === undefined || val === null || val === '');
+                    if(!isMissing) t3Raw += Number(val);
                     bodyHtml += `<td class="p-1 border-r border-dashed border-pink-200">
                         <input type="number" step="0.5" min="0" max="${col.max}" 
                         onchange="updateScoreFromFull('${std.id}', '${col.id}', this.value)"
@@ -2250,6 +2276,7 @@
                         value="${!isMissing ? val : ''}" placeholder="-">
                     </td>`; 
                 });
+                bodyHtml += `<td id="t3total-${std.id}" class="p-2 text-center border-r-2 border-pink-300 font-bold text-xs bg-pink-50 text-pink-700">${t3Raw}</td>`;
 
                 // T4
                 let t4Raw = 0;
@@ -2317,13 +2344,26 @@
                     
                     const totalEl = document.getElementById(`total-${studentId}`);
                     const gradeEl = document.getElementById(`grade-${studentId}`);
+                    const t1totalEl = document.getElementById(`t1total-${studentId}`);
                     const t2passEl = document.getElementById(`t2pass-${studentId}`);
+                    const t3totalEl = document.getElementById(`t3total-${studentId}`);
                     
                     if(totalEl) totalEl.innerText = total;
                     if(gradeEl) {
                         gradeEl.innerText = grade;
                         gradeEl.className = `px-3 py-1 rounded-full font-bold font-number ${gradeColor}`;
                     }
+                    
+                    if(t1totalEl) {
+                        let t1Raw = 0;
+                        const t1Cols = (classData.gradeColumns || []).filter(c => c.cat === 'T1');
+                        t1Cols.forEach(c => { 
+                            let v = std.scores[c.id];
+                            if(v !== undefined && v !== null && v !== '') t1Raw += Number(v);
+                        });
+                        t1totalEl.innerText = t1Raw;
+                    }
+                    
                     if(t2passEl) {
                         let t2Raw = 0;
                         const t2Cols = (classData.gradeColumns || []).filter(c => c.cat === 'T2');
@@ -2334,6 +2374,16 @@
                         let t2Pass = t2Raw >= 7;
                         t2passEl.innerText = t2Pass ? '✅ ผ่าน' : '❌ ไม่ผ่าน';
                         t2passEl.className = `p-2 text-center border-r-2 border-blue-300 font-bold text-xs ${t2Pass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
+                    }
+                    
+                    if(t3totalEl) {
+                        let t3Raw = 0;
+                        const t3Cols = (classData.gradeColumns || []).filter(c => c.cat === 'T3');
+                        t3Cols.forEach(c => { 
+                            let v = std.scores[c.id];
+                            if(v !== undefined && v !== null && v !== '') t3Raw += Number(v);
+                        });
+                        t3totalEl.innerText = t3Raw;
                     }
                     
                     // Update input styling (red background if empty)
@@ -3855,24 +3905,22 @@
             </div>
         </div>
     </div>
-    <!-- Floating Save Button (Using Inline Styles to bypass Tailwind JIT issues) -->
-    <button onclick="forceSaveData()" id="floatingSaveBtn" style="position: fixed; bottom: 30px; right: 30px; z-index: 9999; background-color: #f43f5e; color: white; padding: 16px 28px; border-radius: 50px; font-weight: bold; font-size: 16px; box-shadow: 0 10px 25px -5px rgba(244, 63, 94, 0.5); border: 3px solid white; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05) translateY(-5px)'" onmouseout="this.style.transform='scale(1) translateY(0)'">
-        <i class="fa-solid fa-cloud-arrow-up" style="font-size: 20px;"></i>
-        <span>บันทึกข้อมูลด่วน</span>
-    </button>
+
 
     <script>
-        window.forceSaveData = async function() {
+        window.forceSaveData = async function(btn) {
             if(!currentClassId) {
                 showModal('แจ้งเตือน', 'กรุณาเลือกห้องเรียนหรือเข้าสู่ระบบให้เรียบร้อยก่อนทำการบันทึกครับ', '<i class="fa-solid fa-circle-info"></i>', 'text-amber-500');
                 return;
             }
             
-            const btn = document.getElementById('floatingSaveBtn');
-            const originalHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-xl"></i> <span>กำลังบันทึก...</span>';
-            btn.disabled = true;
-            btn.classList.add('opacity-70');
+            let originalHtml = '';
+            if(btn) {
+                originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> กำลังบันทึก...';
+                btn.disabled = true;
+                btn.classList.add('opacity-70');
+            }
 
             try {
                 // If there are students in memory, push them explicitly
@@ -3889,9 +3937,11 @@
                 console.error(e);
                 showModal('บันทึกไม่สำเร็จ', 'เกิดข้อผิดพลาด: ' + e.message, '<i class="fa-solid fa-triangle-exclamation"></i>', 'text-red-500');
             } finally {
-                btn.innerHTML = originalHtml;
-                btn.disabled = false;
-                btn.classList.remove('opacity-70');
+                if(btn) {
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-70');
+                }
             }
         };
     </script>
