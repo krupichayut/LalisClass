@@ -64,7 +64,10 @@
                 <i class="fa-solid fa-user-graduate"></i>
             </div>
             <div class="text-center md:text-left relative z-10 flex-1">
-                <p class="text-heart-brown/60 font-bold mb-1"><span id="lblClassName" class="bg-white px-3 py-1 rounded-full text-xs shadow-sm">ม.3/1 ศิลปะ</span></p>
+                <p class="text-heart-brown/60 font-bold mb-1 flex flex-wrap items-center justify-center md:justify-start gap-2">
+                    <span id="lblClassName" class="bg-white px-3 py-1 rounded-full text-xs shadow-sm">ม.3/1 ศิลปะ</span>
+                    <span id="lblClassTerm" class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs shadow-sm font-bold">ภาคเรียนที่ 1/2569</span>
+                </p>
                 <h2 id="lblStudentName" class="text-3xl font-black text-heart-brown">ด.ช. สมชาย รักเรียน</h2>
                 <p class="text-heart-brown/80 mt-2 font-number">เลขที่ <span id="lblStudentNum" class="font-bold">1</span> | รหัสประจำตัว <span id="lblStudentCode" class="font-bold">65001</span></p>
             </div>
@@ -260,6 +263,12 @@
         function renderDashboard() {
             // Profile
             document.getElementById('lblClassName').innerText = loggedInClass.name;
+            const termEl = document.getElementById('lblClassTerm');
+            if(termEl) {
+                const y = loggedInClass.academicYear || '2569';
+                const s = loggedInClass.semester || '1';
+                termEl.innerText = `ภาคเรียนที่ ${s}/${y}`;
+            }
             document.getElementById('lblStudentName').innerText = loggedInStudent.name;
             document.getElementById('lblStudentNum').innerText = loggedInStudent.number;
             document.getElementById('lblStudentCode').innerText = loggedInStudent.stdCode;
